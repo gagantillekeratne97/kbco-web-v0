@@ -1,0 +1,39 @@
+import { LucideIcon, TrendingDown, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type KpiCardProps = {
+  label: string;
+  value: string;
+  deltaPct?: number;
+  icon: LucideIcon;
+};
+
+export default function KpiCard({ label, value, deltaPct, icon: Icon }: KpiCardProps) {
+  const isPositive = (deltaPct ?? 0) >= 0;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 shadow-md">
+      <div className="flex items-start justify-between">
+        <p className="text-sm text-gray-400">{label}</p>
+        {/* <p className="text-sm text-muted">{label}</p> */}
+        <div className="w-9 h-9 rounded-lg bg-orange-soft flex items-center justify-center">
+          <Icon size={17} className="text-orange" />
+        </div>
+      </div>
+
+      <p className="mt-3 text-2xl font-semibold text-navy-text">{value}</p>
+
+      {deltaPct !== undefined && (
+        <div
+          className={cn(
+            "mt-2 inline-flex items-center gap-1 text-xs font-medium",
+            isPositive ? "text-success" : "text-danger"
+          )}
+        >
+          {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          <span>{Math.abs(deltaPct)}% vs last month</span>
+        </div>
+      )}
+    </div>
+  );
+}
