@@ -3,7 +3,7 @@ import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, Invoic
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function getRevenueTrend(monthsBack = 7):Promise<RevenueTrendPoint> {
+export async function getRevenueTrend(monthsBack = 7): Promise<RevenueTrendPoint[]> {
   const response = await fetch(`${API_BASE}reports/revenue-trend?monthsBack=${monthsBack}`, {
     cache: "no-store"
   });
