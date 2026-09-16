@@ -22,14 +22,26 @@ export default function CreditNotePage() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [statues, setStatus] = useState("");
 
   const [filters, setFilters] = useState({
     query: "",
     fromDate: "",
     toDate: "",
+    status: ""
   });
 
   const pageSize = 10;
+
+  const getCompanyId = (): string => { 
+    const companyId = localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
+    
+    if (!companyId) {
+      throw new Error("Company ID not found.");
+    }
+
+    return companyId;
+  };
 
   const fetchCreditNotes = useCallback(async () => {
     try {
@@ -41,6 +53,8 @@ export default function CreditNotePage() {
         toDate: filters.toDate,
         page: currentPage,
         pageSize: pageSize,
+        status: filters.status,        
+        companyId: getCompanyId()
       };
 
       const result = await getCreditNoteLists(params);
@@ -75,6 +89,7 @@ export default function CreditNotePage() {
     query: string;
     fromDate: string;
     toDate: string;
+    status: string;
   }) => {
     setFilters(newFilters);
     setCurrentPage(1);

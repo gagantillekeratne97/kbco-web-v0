@@ -11,9 +11,10 @@ import {
   Users,
   ChevronsLeft,
   ChevronDown,
+  Router,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +23,15 @@ const navItems = [
   { label: "Invoices", icon: FileText, href: "/invoices" },
   { label: "Cancelled Invoices", icon: FileText, href: "/cancelled-invoice" },
   { label: "Credit Notes", icon: Receipt, href: "/credit-notes" },
-  { label: "Machines", icon: Cpu, href: "/coming-soon-page" },  
-  { label: "Spare Parts", icon: Boxes, href: "/coming-soon-page" },
+  { label: "Revenue Report", icon: Router, href: "/invoice-revenue-report" },
+  { label: "Machines", icon: Cpu, href: "/coming-soon-page" },    
   { label: "Customers", icon: Users, href: "/coming-soon-page" },
+  { label: "Spare Parts", icon: Boxes, href: "/spare-parts", 
+    children: [ 
+      { label: "Upload Items", href: "/spare-parts/upload-items"},
+      { label: "Items Report", href: "/spare-parts/items-report"}
+    ],
+  },
     {
     label: "Transactions",
     icon: Settings,
@@ -41,7 +48,12 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const pathname = usePathname();
+  const pathname = usePathname();  
+  const router = useRouter();
+
+  const handleLogout = () => { 
+    router.push("/login");
+  }
 
   return (
     <aside
@@ -152,7 +164,9 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-white/10 p-3 space-y-1">
-        <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+        <button
+          onClick={handleLogout}
+         className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors">
           <LogOut size={18} className="shrink-0" />
           {!collapsed && <span>Log out</span>}
         </button>

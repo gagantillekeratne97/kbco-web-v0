@@ -35,6 +35,17 @@ export default function InvoicePage() {
   // --------------------------------------------------
   // Export handling function 
   // --------------------------------------------------
+
+  const getCompanyId = (): string => { 
+    const companyId = localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
+    
+    if (!companyId) {
+      throw new Error("Company ID not found.");
+    }
+
+    return companyId;
+  };
+
   const handleExport = async () => {
   setIsExporting(true);
   try {
@@ -45,6 +56,8 @@ export default function InvoicePage() {
       toDate,
       page: 1,
       pageSize: totalCount || 100000, // large enough to get everything
+      status, 
+      companyId: getCompanyId()
     });
 
     const rows = data.items;
@@ -106,6 +119,8 @@ export default function InvoicePage() {
         toDate: searchToDate,
         page,
         pageSize,
+        status, 
+        companyId: getCompanyId()
       });
 
       // Invoice records

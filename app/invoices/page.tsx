@@ -32,6 +32,16 @@ export default function InvoicePage() {
   // Export option 
   const [isExporting, setIsExporting] = useState(false);
 
+  const getCompanyId = (): string => { 
+    const companyId = localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
+    
+    if (!companyId) {
+      throw new Error("Company ID not found.");
+    }
+
+    return companyId;
+  };
+
   // --------------------------------------------------
   // Export handling function 
   // --------------------------------------------------
@@ -45,6 +55,8 @@ export default function InvoicePage() {
       toDate,
       page: 1,
       pageSize: totalCount || 100000, // large enough to get everything
+      status: "", 
+      companyId: getCompanyId()
     });
 
     const rows = data.items;
@@ -100,12 +112,16 @@ export default function InvoicePage() {
     searchToDate: string = toDate
   ) => {
     try {
+      const companyId = getCompanyId();
+
       const data = await getInvoiceLists({
         query: searchQuery,
         fromDate: searchFromDate,
         toDate: searchToDate,
         page,
-        pageSize,
+        pageSize,                
+        companyId,
+        status:""
       });
 
       // Invoice records

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { InvoiceLists } from "@/lib/types";
+import type { InvoiceRevenueLists } from "@/lib/types";
 
 import {
   Table,
@@ -22,8 +22,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-interface InvoiceTableProps {
-  data: InvoiceLists[];
+interface InvoiceRevenueTableProps {
+  data: InvoiceRevenueLists[];
   currentPage: number;
   totalPages: number;
   totalCount: number;
@@ -42,6 +42,7 @@ type StatusKey =
   | "approved"
   | "rejected"
   | "completed"
+  | "creditnote"
   | "cancelled"
   | "processing";
 
@@ -72,6 +73,10 @@ const statusStyles: Record<
   cancelled: {
     badge: "bg-slate-100 text-slate-600 ring-slate-500/20",
     dot: "bg-slate-400",
+  },
+  creditnote: {
+    badge: "bg-violet-50 text-violet-700 ring-violet-600/20",
+    dot: "bg-violet-500",
   },
 };
 
@@ -129,7 +134,7 @@ const cellStrong =
 const cellNumeric =
   "px-4 py-3 text-sm text-slate-700 text-right whitespace-nowrap tabular-nums";
 
-export default function InvoiceTable({
+export default function InvoiceRevenueTable({
   data,
   currentPage,
   onPageChange,
@@ -137,10 +142,10 @@ export default function InvoiceTable({
   totalPages,
   isLoading = false,
   onSearch,
-}: InvoiceTableProps) {
+}: InvoiceRevenueTableProps) {
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");  
+  const [toDate, setToDate] = useState("");
 
   const handleSearch = () => {
     onSearch?.({
@@ -213,16 +218,8 @@ export default function InvoiceTable({
                   Invoice Number
                 </TableHead>
 
-                <TableHead className="px-4 py-3">  
-                  Credit Note Number
-                </TableHead>
-
                 <TableHead className="px-4 py-3">
                   Invoice Date
-                </TableHead>
-
-                <TableHead className="px-4 py-3">
-                  Invoice Status
                 </TableHead>
 
                 <TableHead className="px-4 py-3">
@@ -313,7 +310,8 @@ export default function InvoiceTable({
                     <TableRow
                       key={`${invoiceInfo.invoiceNo}-${index}`}
                       className="hover:bg-slate-50"
-                    >                      
+                    >
+
                       <TableCell className={cellBase}>
                         {getRowNumber(index)}
                       </TableCell>
@@ -322,22 +320,9 @@ export default function InvoiceTable({
                         {invoiceInfo.invoiceNo}
                       </TableCell>
 
-                      <TableCell className={cellBase}> 
-                        {invoiceInfo.creditNo}
-                      </TableCell>
-
                       <TableCell className={cellBase}>
                         {formatDate(invoiceInfo.invoiceDate)}
                       </TableCell>                      
-
-                      <TableCell className={cellBase}>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle.badge}`}
-                      >
-                          <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
-                          {formatStatusLabel(invoiceInfo.invoiceStatus)}
-                        </span>
-                      </TableCell>
 
                       <TableCell className={cellBase}>
                         {invoiceInfo.customerCode}

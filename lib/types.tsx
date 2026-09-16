@@ -6,13 +6,20 @@ export type kpiSummery = {
     newInvoices: { value: number; percentage: number };    
 };
 
+export type kpiRevenueCard = { 
+  value: number; 
+  percentage: number;
+}
+
 // Pagination and invoice list types
 export interface InvoiceRequestQuery { 
   query?: string, 
   fromDate?: string; 
   toDate: string; 
   page: number; 
-  pageSize: number; 
+  pageSize: number;    
+  status: string;
+  companyId: string; 
 }
 
 export type RevenueTrendPoint = { 
@@ -20,15 +27,36 @@ export type RevenueTrendPoint = {
   revenue: number; 
 };
 
+export interface PartsModel { 
+  companyID: string; 
+  productCode: string; 
+  productDescription: string;
+  productUnitPrice: number;
+}
+
+export interface ExcelResponse { 
+  success: boolean; 
+  totalRows: number; 
+  successfullRows: number; 
+  failedRows: number; 
+  errors: string[]; 
+  data: PartsModel[];
+}
+
 export interface LoginResponseModel { 
   statusCode: number; 
-  message: string;   
+  message: string; 
+  token: string; 
+  userName: string; 
+  userCode: string; 
+  companyID: string;
+  companyName: string;
 }
 
 export interface LoginRequestModel { 
   userName: string; 
   password: string; 
-  companyId: string; 
+  companyID: string; 
 }
 
 export interface PaginatedResult<T> { 
@@ -37,6 +65,26 @@ export interface PaginatedResult<T> {
   pageSize: number; 
   totalCount: number; 
   totalPages: number; 
+}
+
+export type InvoiceRevenueLists = { 
+  invoiceNo: string; 
+  invoiceDate: string; 
+  creditNo: string; 
+  invoiceReference: string; 
+  creditNoteDate: string;   
+  customerCode: string; 
+  customerName: string; 
+  agreementId: string; 
+  totalCopies: number; 
+  subTotal: number; 
+  vatAmount: number; 
+  ssclAmount: number; 
+  netTotalAmount: number; 
+  invoicePeriod: string; 
+  repCode: string;   
+  repName: string; 
+  invoiceStatus: string; 
 }
 
 export type InvoiceLists = { 
@@ -82,7 +130,10 @@ export type CreditNote = {
   creditNoteValue: number; 
   vatAmount: number; 
   ssclAmount: number; 
-  creditNoteStatus: string;         
+  creditNoteStatus: string;      
+  crReason: string;     
+  crBy: string;
+  invTransactionStatus:string;
 };
 
 export type MachineStatusSummary = {

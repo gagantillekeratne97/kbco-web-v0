@@ -13,6 +13,7 @@
     "@tanstack/react-table": "^9.0.0-beta.80",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.2.6",
     "geist": "^1.7.2",
     "lucide-react": "^0.424.0",
     "next": "14.2.35",

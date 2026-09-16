@@ -1,3 +1,4 @@
+"use client";
 import { FileText, Receipt, Cpu, FilePlus2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -12,7 +13,7 @@ export default async function DashboardPage() {
   const kpis = await getKpiSummery();
   const recentInvoices = await getRecentInvoices();
   const machineStatus = await getMachineStatus();  
-  const revenueTrend = await getRevenueTrend(); 
+  const revenueTrend = await getRevenueTrend();     
 
   return (
     <div className="flex min-h-screen bg-surface font-display">
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
             />
             <KpiCard
               label="Credit Notes (Sum)"
-              value={kpis.activeMachines.value.toString()}
+              value={formatCurrency(kpis.activeMachines.value)}
               deltaPct={kpis.activeMachines.percentage}
               icon={Cpu}
             />
