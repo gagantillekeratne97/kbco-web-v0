@@ -1,8 +1,26 @@
+"use client";
 import { rawConfigSchema } from "shadcn/schema";
 import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel} from "./types";
 import { error } from "console";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// safe helper to read companyID only in the browser
+function getCompanyId(): string {
+  if (typeof window === "undefined") {
+    throw new Error("Company ID not found.");
+  }
+
+  const companyId =
+    localStorage.getItem("companyID") ??
+    sessionStorage.getItem("companyID");
+
+  if (!companyId) {
+    throw new Error("Company ID not found.");
+  }
+
+  return companyId;
+}
 
 // get total items kpi card amount
 
@@ -81,15 +99,7 @@ export async function loginUser(payload: LoginRequestModel) : Promise<LoginRespo
 }
 
 export async function getKpiSummery(): Promise<kpiSummery> {
-  let companyId = localStorage.getItem("companyID");
-
-  if (!companyId) {
-    companyId = sessionStorage.getItem("companyID");
-  }
-
-  if (!companyId) {
-    throw new Error("Company ID not found.");
-  }
+  const companyId = getCompanyId();
 
   const response = await fetch(
     `${API_BASE}reports/kpis?companyId=${encodeURIComponent(companyId)}`,
@@ -184,15 +194,7 @@ export async function getCancelledInvoiceLists(params: InvoiceRequestQuery): Pro
 // Invoice Revenue Report 
 // KPIS function
 export async function getRevenueKpiTotal() {
-  let companyId = localStorage.getItem("companyID");
-
-  if (!companyId) {
-    companyId = sessionStorage.getItem("companyID");
-  }
-
-  if (!companyId) {
-    throw new Error("Company ID not found.");
-  }
+  const companyId = getCompanyId();
 
   const response = await fetch(
     `${API_BASE}reports/invoice-revenue-kpi-cards?companyId=${encodeURIComponent(companyId)}`,
@@ -290,15 +292,7 @@ export async function getInvoiceLists(params: InvoiceRequestQuery): Promise<Pagi
 
 
 export async function getMachineStatus(): Promise<MachineStatusSummary> {
-  let companyId = localStorage.getItem("companyID");
-
-  if (!companyId) {
-    companyId = sessionStorage.getItem("companyID");
-  }
-
-  if (!companyId) {
-    throw new Error("Company ID not found.");
-  }
+  const companyId = getCompanyId();
 
   const res = await fetch(
     `${API_BASE}reports/status-summary?companyId=${encodeURIComponent(companyId)}`,
@@ -318,15 +312,8 @@ export async function getMachineStatus(): Promise<MachineStatusSummary> {
 
 
 export async function getRecentInvoices(take = 6): Promise<RecentInvoices[]> {
-  let companyId = localStorage.getItem("companyID");
+  const companyId = getCompanyId();
 
-  if (!companyId) {
-    companyId = sessionStorage.getItem("companyID");
-  }
-
-  if (!companyId) {
-    throw new Error("Company ID not found.");
-  }
   const res = await fetch(`${API_BASE}reports/recent-invoices?take=${take}&companyId=${companyId}`, {
     cache: "no-store",
   });

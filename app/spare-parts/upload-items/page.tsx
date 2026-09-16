@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -24,14 +24,13 @@ export default function SparePartsPage() {
   const [processing, setProcessing] = useState(false);
 
   const [error, setError] = useState("");
+  const [companyID, setCompanyID] = useState<string | null>(null);
 
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "warning" | "info";
     title: string;
     message: string;
-  } | null>(null);
-
-  const companyID = "001";
+  } | null>(null);  
 
   // =========================================================
   // Close Notification
@@ -45,49 +44,59 @@ export default function SparePartsPage() {
   // Upload Excel
   // =========================================================
 
+useEffect(() => {
+  const storedId =
+    localStorage.getItem("companyID") ??
+    sessionStorage.getItem("companyID");
+
+  setCompanyID(storedId);
+}, []);
+
   const handleUpload = async () => {
-    if (!file) {
-      setError("Please select an Excel file.");
-      return;
-    }
+  if (!file) {
+    setError("Please select an Excel file.");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setError("");
+  if (!companyID) {
+    setError("Company ID not found. Please log in again.");
+    return;
+  }
 
-      const result = await uploadItemsExcel(
-        file,
-        companyID
-      );
+  try {
+    setLoading(true);
+    setError("");
 
-      setParts(result.data);
+    const result = await uploadItemsExcel(file, companyID);
 
-      setNotification({
-        type: "success",
-        title: "Excel Uploaded Successfully",
-        message: `${result.data.length.toLocaleString()} parts were imported successfully.`,
-      });
+    setParts(result.data);
 
-    } catch (error) {
-      console.error(error);
+    setNotification({
+      type: "success",
+      title: "Excel Uploaded Successfully",
+      message: `${result.data.length.toLocaleString()} parts were imported successfully.`,
+    });
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while uploading the Excel file.";
+  } catch (error) {
+    console.error(error);
 
-      setError(message);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Something went wrong while uploading the Excel file.";
 
-      setNotification({
-        type: "error",
-        title: "Upload Failed",
-        message,
-      });
+    setError(message);
 
-    } finally {
-      setLoading(false);
-    }
-  };
+    setNotification({
+      type: "error",
+      title: "Upload Failed",
+      message,
+    });
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   // =========================================================
   // Process Parts
