@@ -80,33 +80,49 @@ export default function DashboardPage() {
           {loading || !kpis || !machineStatus ? (
             <div className="p-6 text-sm text-slate-500">Loading dashboard...</div>
           ) : (
-            <>
+            <>              
               {/* 1. KPI cards */}
-              <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <KpiCard
-                  label="Invoice revenue"
-                  value={formatCurrency(kpis.invoiceRevenue.value)}
-                  deltaPct={kpis.invoiceRevenue.percentage}
-                  icon={FileText}
-                />
-                <KpiCard
-                  label="Invoice List (Count)"
-                  value={kpis.invoicesList.value.toString()}
-                  deltaPct={kpis.invoicesList.percentage}
-                  icon={FileText}
-                />
-                <KpiCard
-                  label="Credit notes (Count)"
-                  value={kpis.creditNotes.value.toString()}
-                  deltaPct={kpis.creditNotes.percentage}
-                  icon={Receipt}
-                />
-                <KpiCard
-                  label="Credit Notes (Sum)"
-                  value={formatCurrency(kpis.activeMachines.value)}
-                  deltaPct={kpis.activeMachines.percentage}
-                  icon={Cpu}
-                />
+              <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 2xl:grid-cols-10 gap-4">
+                <div className="xl:col-span-2">
+                  <KpiCard
+                    label="Invoice Revenue (Without Tax)"
+                    value={formatCurrency(kpis.invoiceRevenueWithoutTax.value)}
+                    deltaPct={kpis.invoiceRevenueWithoutTax.percentage}
+                    icon={FileText}
+                  />
+                </div>
+                <div className="xl:col-span-2">
+                  <KpiCard
+                    label="Invoice revenue (With Tax)"
+                    value={formatCurrency(kpis.invoiceRevenue.value)}
+                    deltaPct={kpis.invoiceRevenue.percentage}
+                    icon={FileText}
+                  />
+                </div>
+                <div className="xl:col-span-2">
+                  <KpiCard
+                    label="Invoice List (Count)"
+                    value={kpis.invoicesList.value.toString()}
+                    deltaPct={kpis.invoicesList.percentage}
+                    icon={FileText}
+                  />
+                </div>
+                <div className="xl:col-span-3 2xl:col-span-2">
+                  <KpiCard
+                    label="Credit notes (Count)"
+                    value={kpis.creditNotes.value.toString()}
+                    deltaPct={kpis.creditNotes.percentage}
+                    icon={Receipt}
+                  />
+                </div>
+                <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-2">
+                  <KpiCard
+                    label="Credit Notes (Sum)"
+                    value={formatCurrency(kpis.activeMachines.value)}
+                    deltaPct={kpis.activeMachines.percentage}
+                    icon={Receipt}
+                  />
+                </div>
               </section>
 
               {/* 2 & 3(bars). Revenue chart + machine status */}

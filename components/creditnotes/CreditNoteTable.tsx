@@ -697,10 +697,34 @@ export default function CreditNoteTable({
 
                 <TableHead className="px-4 py-3">
                   REASON FOR CREDIT NOTE
-                </TableHead>
+                </TableHead>                
 
                 <TableHead className="px-4 py-3">
                   Credit Note Raised By
+                </TableHead>                
+
+                <TableHead className="px-4 py-3">
+                  HOD Comment 
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Approved By
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Approved Date
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Finance Comment 
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Finance Approved By
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Finance Approved Date
                 </TableHead>
 
               </TableRow>
@@ -1031,8 +1055,34 @@ export default function CreditNoteTable({
                           {creditNote.crBy}
                         </TableCell>
 
-                      </TableRow>
+                        <TableCell className={cellBase}>
+                          {creditNote.hodCrComment}                          
+                        </TableCell>
 
+                        <TableCell className={cellBase}>
+                          {creditNote.approvedBy}                          
+                        </TableCell>
+
+                        <TableCell className={cellBase}>
+                          {formatDate(
+                            creditNote.approvedDate
+                          )}
+                        </TableCell>
+
+                        <TableCell className={cellBase}>
+                          {creditNote.financeComment}                          
+                        </TableCell>
+
+                        <TableCell className={cellBase}>
+                          {creditNote.financeAppBy}                          
+                        </TableCell>
+
+                        <TableCell className={cellBase}>
+                          {formatDate(
+                            creditNote.financeAppDate
+                          )}
+                        </TableCell>
+                      </TableRow>
                     );
                   }
                 )

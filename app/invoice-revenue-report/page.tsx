@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { InvoiceRevenueLists } from "@/lib/types";
 import {
+  getCancelledKpiTotal,
   getInvoiceRevenueLists,
   getRevenueKpiTotal,
 } from "@/lib/apis";
@@ -66,6 +67,7 @@ export default function InvoicePage() {
   // --------------------------------------------------
 
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [totalCancelled, setCancelledTotal] = useState<number>(0);
   const [totalInvoiceSum, setTotalInvoiceSum] = useState<number>(0);
   const [totalCreditNoteSum, setTotalCreditNoteSum] =
     useState<number>(0);
@@ -75,6 +77,16 @@ export default function InvoicePage() {
   // --------------------------------------------------
 
   useEffect(() => {
+    const loadCancelledTotal = async () => { 
+      try {
+        const data = await getCancelledKpiTotal(); 
+        setCancelledTotal(data.value);
+        console.log(data.value);
+      } catch (error) {
+        
+      }
+    }
+
     const loadRevenueTotal = async () => {
       try {
         const data = await getRevenueKpiTotal();
@@ -91,6 +103,7 @@ export default function InvoicePage() {
     };
 
     loadRevenueTotal();
+    loadCancelledTotal(); 
   }, []);
 
   // --------------------------------------------------
@@ -338,7 +351,11 @@ export default function InvoicePage() {
 
             <KpiCard 
             label="Total Cancelled Invoice (Sum)" 
-            value="LKR 0.00"
+            value={`LKR ${totalCancelled.toLocaleString("en-LK",
+                {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`}
             deltaPct={5.12}
             icon={TrendingUp}/>
           </div>

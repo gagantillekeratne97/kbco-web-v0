@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { InvoiceLists } from "@/lib/types";
-import { getInvoiceLists } from "@/lib/apis";
+import { InvoiceLists, PendingInvoiceLists } from "@/lib/types";
+import { getInvoiceLists, getPendingInvoiceList } from "@/lib/apis";
 import { Download, Search } from "lucide-react";
 import InvoiceTable from "@/components/invoice/invoiceTable";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { Button } from "@/components/ui/button";
+import PendingInvoiceTable from "@/components/pending-invoice-report/PendingInvoiceTable";
 
-export default function InvoicePage() {
+export default function PendingInvoicesPage() {
   // --------------------------------------------------
   // Invoice Status
   // --------------------------------------------------
@@ -43,7 +44,7 @@ export default function InvoicePage() {
   // Invoice data
   // --------------------------------------------------
 
-  const [invoices, setInvoices] = useState<InvoiceLists[]>([]);
+  const [invoices, setInvoices] = useState<PendingInvoiceLists[]>([]);
 
   // --------------------------------------------------
   // Search filters
@@ -96,7 +97,7 @@ export default function InvoicePage() {
     try {
       // Fetch all matching records.
       // Pagination is ignored for export.
-      const data = await getInvoiceLists({
+      const data = await getPendingInvoiceList({
         query,
         fromDate,
         toDate,
@@ -196,7 +197,7 @@ export default function InvoicePage() {
     try {
       const companyId = getCompanyId();
 
-      const data = await getInvoiceLists({
+      const data = await getPendingInvoiceList({
         query: searchQuery,
         fromDate: searchFromDate,
         toDate: searchToDate,
@@ -323,7 +324,7 @@ export default function InvoicePage() {
       <div className="flex flex-1 min-w-0 flex-col">
 
         {/* Topbar */}
-        <Topbar title="Invoice List" />
+        <Topbar title="Pending Invoice List" />
 
         <div className="m-5 space-y-6">
 
@@ -489,7 +490,7 @@ export default function InvoicePage() {
           {/* Invoice Table */}
           {/* ================================================== */}
 
-          <InvoiceTable
+          <PendingInvoiceTable
             data={invoices}
             currentPage={currentPage}
             totalPages={totalPages}

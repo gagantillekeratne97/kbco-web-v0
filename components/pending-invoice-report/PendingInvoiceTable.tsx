@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { InvoiceLists } from "@/lib/types";
+import type { InvoiceLists, PendingInvoiceLists } from "@/lib/types";
 
 import {
   Table,
@@ -22,8 +22,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-interface InvoiceTableProps {
-  data: InvoiceLists[];
+interface PendingInvoiceProps {
+  data: PendingInvoiceLists[];
   currentPage: number;
   totalPages: number;
   totalCount: number;
@@ -37,7 +37,7 @@ interface InvoiceTableProps {
   }) => void;
 }
 
-type StatusKey = "invoiced" | "creditnote" | "receipted" | "cancelled";
+type StatusKey = "invoiced" | "creditnote" | "receipted" | "cancelled" | "pending";
 
 const statusStyles: Record<StatusKey, { badge: string; dot: string }> = {
   invoiced: {
@@ -56,6 +56,11 @@ const statusStyles: Record<StatusKey, { badge: string; dot: string }> = {
     badge: "bg-amber-50 text-amber-700 ring-amber-600/20",
     dot: "bg-amber-500",
   },
+
+  pending: {
+    badge: "bg-amber-50 text-amber-700 ring-amber-600/20",
+    dot: "bg-amber-500",
+  },
 };
 
 const defaultStatusStyle = {
@@ -63,7 +68,7 @@ const defaultStatusStyle = {
   dot: "bg-slate-400",
 };
 
-const formatStatusLabel = (status?: string) => {
+const formatStatusLabel = (status?: string) => {  
   if (!status) return "Unknown";
 
   return status
@@ -120,7 +125,7 @@ export default function InvoiceTable({
   totalPages,
   isLoading = false,
   onSearch,
-}: InvoiceTableProps) {
+}: PendingInvoiceProps) {
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");  
@@ -149,11 +154,10 @@ export default function InvoiceTable({
     onPageChange(1);
   };
 
-const getStatusStyle = (status?: string) => {
-  console.log(status);
+const getStatusStyle = (status?: string) => {  
   // "Credit Note", "credit_note", "CreditNote" -> "creditnote"
   const key = (status ?? "").toLowerCase().replace(/[\s_-]+/g, "");
-
+  console.log(key);
   return statusStyles[key as StatusKey] ?? defaultStatusStyle;
 };
 
@@ -195,60 +199,34 @@ const getStatusStyle = (status?: string) => {
                 </TableHead>
 
                 <TableHead className="px-4 py-3">
-                  Invoice Number
+                  Customer Code
                 </TableHead>
 
                 <TableHead className="px-4 py-3">  
-                  Credit Note Number
-                </TableHead>
-
-                <TableHead className="px-4 py-3">
-                  Invoice Date
-                </TableHead>
-
-                <TableHead className="px-4 py-3">
-                  Invoice Status
-                </TableHead>
-
-                <TableHead className="px-4 py-3">
-                  Customer Code
+                  Agreement Code
                 </TableHead>
 
                 <TableHead className="px-4 py-3">
                   Customer Name
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Last invoice No
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Last Invoice Date
+                </TableHead>
+
+                <TableHead className="px-4 py-3">
+                  Last inv Period Start
                 </TableHead>                
-
                 <TableHead className="px-4 py-3"> 
-                  Agreement ID
+                  Last inv Period End
                 </TableHead>
-
-                <TableHead className="px-4 py-3">  
-                  Tech Code
-                </TableHead>
-
-                <TableHead className="px-4 py-3">  
-                  Tech Name
-                </TableHead>
-
                 <TableHead className="px-4 py-3"> 
-                  Total Copies
-                </TableHead>
-
-                <TableHead className="px-4 py-3"> 
-                  Sub Total
-                </TableHead>
-
-                <TableHead className="px-4 py-3"> 
-                  SSCL Amount 
-                </TableHead>
-
-                <TableHead className="px-4 py-3"> 
-                  VAT Amount  
-                </TableHead>
-
-                <TableHead className="px-4 py-3"> 
-                  Net Amount 
-                </TableHead>
+                  Renewal Status
+                </TableHead>                
               </TableRow>
             </TableHeader>
 
@@ -299,14 +277,14 @@ const getStatusStyle = (status?: string) => {
 
               ) : (
 
-                data.map((invoiceInfo, index) => {
+                data.map((invoiceInfo, index) => {                  
                   const statusStyle = getStatusStyle(
-                    invoiceInfo.invoiceStatus
-                  );
+                    invoiceInfo.renewalStatus
+                  );                  
 
                   return (
                     <TableRow
-                      key={`${invoiceInfo.invoiceNo}-${index}`}
+                      key={`${invoiceInfo.customerCode}-${index}`}
                       className="hover:bg-slate-50"
                     >                      
                       <TableCell className={cellBase}>
@@ -314,116 +292,41 @@ const getStatusStyle = (status?: string) => {
                       </TableCell>
 
                       <TableCell className={cellStrong}>
-                        {invoiceInfo.invoiceNo}
-                      </TableCell>
-
-                      <TableCell className={cellBase}> 
-                        {invoiceInfo.creditNo}
-                      </TableCell>
-
-                      <TableCell className={cellBase}>
-                        {formatDate(invoiceInfo.invoiceDate)}
-                      </TableCell>                      
-
-                      <TableCell className={cellBase}>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle.badge}`}
-                      >
-                          <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
-                          {formatStatusLabel(invoiceInfo.invoiceStatus)}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className={cellBase}>
                         {invoiceInfo.customerCode}
                       </TableCell>
 
-                      <TableCell className={cellBase}>
-                        <div className="max-w-[220px] truncate">
-                          {invoiceInfo.customerName}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className={cellBase}>
-                        <div className="max-w-[220px] truncate">
-                          {invoiceInfo.agreementId}
-                        </div>
+                      <TableCell className={cellBase}> 
+                        {invoiceInfo.agreementCode}
                       </TableCell>
 
                       <TableCell className={cellBase}> 
-                        <div className="max-w-[220px truncate">
-                          {invoiceInfo.repCode}
-                        </div>                                                
+                        {invoiceInfo.customerName}
                       </TableCell>
 
-                      <TableCell className={cellBase}> 
-                        <div className="max-w-[220px truncate">
-                          {invoiceInfo.repName}
-                        </div>                                                
-                      </TableCell>
-
-                      <TableCell className={cellBase}>
-                        <div className="max-w-[220px] truncate">
-                          {invoiceInfo.totalCopies}
-                        </div>
+                      <TableCell className={cellBase}>                        
+                        {invoiceInfo.invNo}
                       </TableCell>                      
 
-                      <TableCell className={`${cellNumeric} font-semibold text-slate-900`}>
-                        {formatAmount(
-                          invoiceInfo.subTotal
-                        )}
-                      </TableCell>
+                      <TableCell className={cellBase}>                        
+                        {formatDate(invoiceInfo.invDate)}
+                      </TableCell>                
 
-                      <TableCell className={cellNumeric}>
-                        {formatAmount(
-                          invoiceInfo.ssclAmount
-                        )}
-                      </TableCell>
+                      <TableCell className={cellBase}>
+                        {formatDate(invoiceInfo.invPeriodStart)}
+                      </TableCell>                      
 
-                      <TableCell className={cellNumeric}>
-                        {formatAmount(
-                          invoiceInfo.vatAmount
-                        )}
-                      </TableCell>
+                      <TableCell className={cellBase}>
+                        {formatDate(invoiceInfo.invPeriodEnd)}
+                      </TableCell>                                            
 
-                      <TableCell className={`${cellNumeric} font-semibold text-slate-900`}>
-                        {formatAmount(
-                          invoiceInfo.netTotalAmount
-                        )}
-                      </TableCell>
-
-                      {/* <TableCell className={cellBase}>
+                      <TableCell className={cellBase}>
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle.badge}`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`}
-                          />
-
-                          {formatStatusLabel(
-                            invoiceInfo.invoiceStatus
-                          )}
+                      >                        
+                          <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
+                          {formatStatusLabel(invoiceInfo.renewalStatus)}
                         </span>
-                      </TableCell> */}
-
-                      {/* <TableCell className={`${cellNumeric} font-semibold text-slate-900`}>
-                        {formatAmount(
-                          invoiceInfo.netTotalAmount
-                        )}
-                      </TableCell>
-
-                      <TableCell className={cellNumeric}>
-                        {formatAmount(
-                          invoiceInfo.ssclAmount
-                        )}
-                      </TableCell>
-
-                      <TableCell className={cellNumeric}>
-                        {formatAmount(
-                          invoiceInfo.vatAmount
-                        )}
-                      </TableCell> */}
-
+                      </TableCell>                                            
                     </TableRow>
                   );
                 })

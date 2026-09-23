@@ -1,7 +1,6 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel} from "./types";
-import { error } from "console";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists} from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -142,7 +141,9 @@ export async function getCreditNoteLists(params: InvoiceRequestQuery): Promise<P
   searchParams.set(
     "pageSize",
     params.pageSize.toString()
-  );
+  );  
+
+  searchParams.set("companyId", params.companyId.toString())
 
   const response = await fetch(
     `${API_BASE}reports/credit-note-lists?${searchParams.toString()}`    
@@ -191,6 +192,28 @@ export async function getCancelledInvoiceLists(params: InvoiceRequestQuery): Pro
   return response.json();
 }
 
+// Invoice Cancelled Report 
+export async function getCancelledKpiTotal() { 
+  const companyId = getCompanyId(); 
+
+  const response = await fetch(
+    `${API_BASE}reports/revenue-cancelled-kpi?companyId=${encodeURIComponent(companyId)}`, 
+    { 
+      method: "GET", 
+      headers: { 
+        "Content-Type": "application/json",         
+      }, 
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch invoice revenue KPI.");
+  }
+
+  return response.json();
+}
+
 // Invoice Revenue Report 
 // KPIS function
 export async function getRevenueKpiTotal() {
@@ -216,8 +239,7 @@ export async function getRevenueKpiTotal() {
 
 // function 
 export async function getInvoiceRevenueLists(params: InvoiceRequestQuery): Promise<PaginatedResult<InvoiceRevenueLists>> {     
-  const searchParams = new URLSearchParams(); 
-  
+  const searchParams = new URLSearchParams();   
   if (params.query) {
     searchParams.set("query", params.query);
   }
@@ -243,6 +265,43 @@ export async function getInvoiceRevenueLists(params: InvoiceRequestQuery): Promi
 
   const response = await fetch(
     `${API_BASE}reports/invoice-revenue-lists?${searchParams.toString()}`    
+  );
+
+  if (!response.ok) { 
+    throw new Error("Failed to fetch customers");
+  }
+
+  return response.json();
+}
+
+//Invoice Pending List Report 
+
+export async function getPendingInvoiceList(params: InvoiceRequestQuery): Promise<PaginatedResult<PendingInvoiceLists>> {
+  const searchParams = new URLSearchParams(); 
+  
+  if (params.query) {
+    searchParams.set("query", params.query);
+  }
+
+  if (params.fromDate) {
+    searchParams.set("fromDate", params.fromDate);
+  }
+
+  if (params.toDate) {
+    searchParams.set("toDate", params.toDate);
+  } 
+
+  searchParams.set("page", params.page.toString());
+
+  searchParams.set(
+    "pageSize",
+    params.pageSize.toString()
+  );
+
+  searchParams.set("companyId", params.companyId);
+
+  const response = await fetch(
+    `${API_BASE}reports/pending-invoice-lists?${searchParams.toString()}`    
   );
 
   if (!response.ok) { 
@@ -278,6 +337,8 @@ export async function getInvoiceLists(params: InvoiceRequestQuery): Promise<Pagi
   );
 
   searchParams.set("companyId", params.companyId);
+  console.log(params.status);
+  searchParams.set("invoiceStatus", params.status);
 
   const response = await fetch(
     `${API_BASE}reports/invoice-lists?${searchParams.toString()}`    

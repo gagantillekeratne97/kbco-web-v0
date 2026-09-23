@@ -1,9 +1,10 @@
 export type kpiSummery = { 
     invoicesList: { value: number; percentage: number},
+    invoiceRevenueWithoutTax : { value: number; percentage: number}, 
     invoiceRevenue: { value: number; percentage: number };
     creditNotes: { value: number; percentage: number };
     activeMachines: { value: number; percentage: number };
-    newInvoices: { value: number; percentage: number };    
+    newInvoices: { value: number; percentage: number };        
 };
 
 export type kpiRevenueCard = { 
@@ -87,6 +88,17 @@ export type InvoiceRevenueLists = {
   invoiceStatus: string; 
 }
 
+export type PendingInvoiceLists = {               
+  customerCode: string;
+  agreementCode: string;   
+  customerName: string; 
+  invNo: string; 
+  invDate: string; 
+  invPeriodStart: string;
+  invPeriodEnd: string;                         
+  renewalStatus: string;
+}
+
 export type InvoiceLists = { 
   invoiceNo: string; 
   invoiceDate: string; 
@@ -134,6 +146,12 @@ export type CreditNote = {
   crReason: string;     
   crBy: string;
   invTransactionStatus:string;
+  hodCrComment: string; 
+  financeComment: string; 
+  approvedBy: string; 
+  approvedDate: string; 
+  financeAppBy: string; 
+  financeAppDate: string; 
 };
 
 export type MachineStatusSummary = {

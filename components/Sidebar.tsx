@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [  
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Invoices", icon: FileText, href: "/invoices" },
+  { label: "Invoices", icon: FileText, href: "/invoices" },  
+  { label: "Pending Invoices", icon: Receipt, href: "/pending-invoice-report" },  
   { label: "Cancelled Invoices", icon: FileText, href: "/cancelled-invoice" },
   { label: "Credit Notes", icon: Receipt, href: "/credit-notes" },
   { label: "Revenue Report", icon: Router, href: "/invoice-revenue-report" },
