@@ -12,6 +12,41 @@ export type kpiRevenueCard = {
   percentage: number;
 }
 
+
+// Internal Consumption DTO 
+export interface InternalConsumptionDto { 
+  comId: string; 
+  irNumber: string; 
+  irDate: string; 
+  area: string; 
+  copies: number; 
+  pnumber: string; 
+  pnType: string; 
+  pdescription: string; 
+  pnPrice: number; 
+  machineModel: string;   
+  qty: number; 
+  currentMr: number;     
+  customerName: string; 
+  techName: string; 
+  serialNumber: string;  
+  isBackup: string;
+}
+
+// Internal Request 
+export interface InternalConsumptionResponse { 
+   status: number;
+  data: InternalConsumptionDto[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalRecords: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 // Pagination and invoice list types
 export interface InvoiceRequestQuery { 
   query?: string, 
@@ -98,6 +133,40 @@ export type PendingInvoiceLists = {
   invPeriodEnd: string;                         
   renewalStatus: string;
 }
+
+export type invoiceItem = {
+  serialNumber: string;
+  agId: string;
+  custCode: string;
+  period_start: string;
+  period_end: string;
+  pnumber: string;
+  invoiceNumber: string;
+  machineModel: string;
+  invAdd1: string;
+  invAdd2: string;
+  invAdd3: string;
+  mLoc: string;
+  billingMethod: string;
+  startMr: number;
+  endMr: number;
+  invoiceCopies: number;
+};
+
+export type creditNoteInfo = {
+  customerCode: string;
+  customerName: string;
+  customerAddress: string;
+
+  invoiceNumber: string;
+  invoiceDate: string;
+
+  subTotal: number;
+  tax: number;
+  ssclAmount: number;
+
+  invoiceItems: invoiceItem[];
+};
 
 export type InvoiceLists = { 
   invoiceNo: string; 

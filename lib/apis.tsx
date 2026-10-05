@@ -1,6 +1,6 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists} from "./types";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse} from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,7 +21,37 @@ function getCompanyId(): string {
   return companyId;
 }
 
-// get total items kpi card amount
+// Internal Consumption 
+export async function getInternalConsumption(
+  comid: string,
+  startDate: string, 
+  endDate: string,
+  search: string, 
+  page: number, 
+  pageSize: number    
+):Promise<InternalConsumptionResponse> 
+{ 
+  const params = new URLSearchParams();   
+  params.append("comId", comid); 
+  params.append("startDate", startDate); 
+  params.append("endDate", endDate);   
+  params.append("page", page.toString()); 
+  params.append("pageSize", pageSize.toString()); 
+  
+  if (search.trim()) { 
+    params.append("search", search.trim());
+  }
+
+    const response = await fetch(
+    `${API_BASE}reports/internal-consumption-lists?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to load internal consumption records.");
+  }  
+
+  return await response.json();
+}
 
 
 //start syncing data to the system
@@ -190,6 +220,32 @@ export async function getCancelledInvoiceLists(params: InvoiceRequestQuery): Pro
   }
 
   return response.json();
+}
+
+export async function getInvoiceCustomerInformation(
+  invoiceNumber: string
+): Promise<creditNoteInfo> {
+  console.log("Fetching customer information for invoice:", invoiceNumber);
+  const response = await fetch(    
+    `${API_BASE}creditnote/getinvoiceInfor?invoiceNumber=${encodeURIComponent(invoiceNumber)}`
+  );
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    // Controller sends the real message in `data` on BadRequest
+    throw new Error(
+      typeof json?.data === "string" && json.data
+        ? json.data
+        : "Failed to get information. Please check the invoice number."
+    );
+  }
+
+  if (!json?.data) {
+    throw new Error("No customer information found for this invoice.");
+  }
+
+  return json.data as creditNoteInfo; // unwrap { status, data }
 }
 
 // Invoice Cancelled Report 
