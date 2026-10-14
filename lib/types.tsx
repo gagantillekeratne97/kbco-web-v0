@@ -7,11 +7,58 @@ export type kpiSummery = {
     newInvoices: { value: number; percentage: number };        
 };
 
+export type CustomerAgreement = {
+  agreementId: string; 
+  agreementName: string; 
+  billingMethod: string; 
+  machineCount: number; 
+  status: "invoiced" | "saved" | "unsaved";
+}
+
+// meterreading sheet machines
+
+export interface MeterSheetMachine {
+    serial: string;
+    model: string;
+    machineRef: string;
+    machineLocation: string;
+    startReading: number;
+    endReading: number | null;
+    copies: number;
+    waistage: number | null;
+}
+
+export interface MeterSheet {
+    status: "invoiced" | "saved" | "unsaved";
+    agreement: {
+        customerType: string;
+        billingMethod: string;
+        slabMethod: string;
+        billingPeriod: number;
+        agreementStart: string | null;
+        agreementEnd: string | null;
+        invoiceStatus: string;
+        machineType: string;
+        rentalPrice: number;
+        repCode: string;
+    };
+    location: { name: string; address1: string; address2: string };
+    adjustment: number | null;
+    machines: MeterSheetMachine[];
+}
+
 export type kpiRevenueCard = { 
   value: number; 
   percentage: number;
 }
 
+// Create Credit Note Request
+export interface CreateCreditNoteRequest {
+  invoiceNumber: string;
+  creditNoteDate: string;
+  companyId: string;
+  reason: string;
+} 
 
 // Internal Consumption DTO 
 export interface InternalConsumptionDto { 
@@ -79,12 +126,27 @@ export interface ExcelResponse {
   data: PartsModel[];
 }
 
+export interface MachineList {
+  machineId: string;
+  machineModel: string; 
+  companyId: string;
+}
+
+export interface MachineListResponse<T>{ 
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 export interface LoginResponseModel { 
   statusCode: number; 
   message: string; 
   token: string; 
   userName: string; 
   userCode: string; 
+  userRole: string; 
   companyID: string;
   companyName: string;
 }
@@ -157,16 +219,31 @@ export type creditNoteInfo = {
   customerCode: string;
   customerName: string;
   customerAddress: string;
+  invoiceReference: string;
 
-  invoiceNumber: string;
+  creditNoteStatus: string; 
+
+  invoiceNumber: string; // this is refering to the credit note number.
   invoiceDate: string;
 
   subTotal: number;
   tax: number;
   ssclAmount: number;
+  total: number;  // Total invoice amount.
 
   invoiceItems: invoiceItem[];
 };
+
+export type creditNoteApproveDto = { 
+  appBy: string; 
+  reason: string; 
+  invoiceNumber: string; 
+}
+
+export type creditNoteApiResponse = { 
+  status: number;  
+  data: creditNoteInfo;   
+}
 
 export type InvoiceLists = { 
   invoiceNo: string; 
@@ -205,6 +282,7 @@ export type CreditNote = {
   cnNo: string; 
   cnDate: string; 
   invoiceNo: string; 
+  invoiceReference: string;
   invoiceDate: string; 
   customerCode: string; 
   customerName: string; 

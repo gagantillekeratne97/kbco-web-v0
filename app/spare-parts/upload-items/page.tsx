@@ -150,7 +150,7 @@ useEffect(() => {
           Notification
       ===================================================== */}
 
-      {notification && (
+      {/* {notification && (
         <Notification
           type={notification.type}
           title={notification.title}
@@ -158,7 +158,7 @@ useEffect(() => {
           onClose={handleCloseNotification}
           duration={5000}
         />
-      )}
+      )} */}
 
       {/* =====================================================
           Sidebar

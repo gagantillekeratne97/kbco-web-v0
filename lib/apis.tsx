@@ -1,6 +1,7 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse} from "./types";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList} from "./types";
+import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -19,6 +20,131 @@ function getCompanyId(): string {
   }
 
   return companyId;
+}
+
+function getUserName(): string { 
+  if (typeof window === "undefined") { 
+    throw new Error("Username not found.");
+  }
+
+  const username = localStorage.getItem("userName") ?? sessionStorage.getItem("userName"); 
+  if (!username) {
+    throw new Error("User name not found.");
+  }
+
+  return username;
+}
+
+// safe helper to read companyID only in the browser
+function getUserRole(): string {
+  if (typeof window === "undefined") {
+    throw new Error("User Role not found.");
+  }
+
+  const userRole =
+    localStorage.getItem("userRole") ??
+    sessionStorage.getItem("userRole");
+
+  if (!userRole) {
+    throw new Error("User Role not found.");
+  }
+
+  return userRole;
+}
+
+export async function approveCreditNoteFinance(invoiceNumber: string, reason: string) 
+{
+  const userRole = getUserRole(); 
+  const userName = getUserName();
+  const response = await fetch(`${API_BASE}creditnote/finance-approved-cr`, {
+    method: "POST", 
+    headers: {
+      "Content-Type": "application/json"
+    }, 
+    body: JSON.stringify({
+      invoiceNumber: invoiceNumber,
+      appBy: userName, 
+      reason: reason, 
+      userRole: userRole
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Something went wrong.");
+  }
+}
+
+export async function approveCreditNoteHOD(
+  invoiceNumber: string,   
+  reason: string) 
+{   
+  debugger;
+    const userRole = getUserRole();
+    const userName = getUserName();
+
+    const response = await fetch(`${API_BASE}creditnote/hod-approved-cr`, { 
+      method: "POST", 
+      headers: { 
+        "Content-Type": "application/json"
+      }, 
+      body: JSON.stringify({
+        invoiceNumber: invoiceNumber, 
+        appBy: userName, 
+        reason: reason, 
+        userRole: userRole       
+      })
+    });    
+
+    if (!response.ok) { 
+      throw new Error("Something went Wrong.");
+    }       
+}
+
+export async function getCreditNoteInformation(invoiceNumber: string):Promise<creditNoteApiResponse> 
+{ 
+  var params = new URLSearchParams(); 
+  params.append("creditNoteNumber", invoiceNumber);  
+  const response = await fetch(`${API_BASE}creditNote/getCreditNoteInfor?${params.toString()}`);
+  if (!response.ok) { 
+    throw new Error("Something went wrong the response does not work.");    
+  }
+
+  return await response.json(); 
+}
+
+// get the machins master lists
+export async function getMachineMasterLists(
+  companyId: string,
+  query: string = "",
+  page: number = 1,
+  pageSize: number = 10
+): Promise<MachineListResponse<MachineList>> {
+const params = new URLSearchParams({
+  companyId,
+  page: String(page),
+  pageSize: String(pageSize),
+});
+
+if (query) params.set("query", query);
+
+  debugger;
+
+  const response = await fetch(
+    `${API_BASE}reports/get-machines-lists?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    // backend returns { status, message } on 400
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.message ?? `Request failed (${response.status})`);
+  }
+
+  return response.json();
 }
 
 // Internal Consumption 
@@ -52,7 +178,6 @@ export async function getInternalConsumption(
 
   return await response.json();
 }
-
 
 //start syncing data to the system
 export async function processRecords(parts: PartsModel[]) {
@@ -220,6 +345,88 @@ export async function getCancelledInvoiceLists(params: InvoiceRequestQuery): Pro
   }
 
   return response.json();
+}
+
+// get meter reading sheets 
+export const getMeterSheet = async (companyId: string, customerCode: string, agreementId: string, 
+  periodStart: string, periodEnd: string 
+) => { 
+    const params = new URLSearchParams({ companyID: companyId, customerCode, agreementId, periodStart, periodEnd });
+    const response = await fetch(`${API_BASE}invoice/get-meter-sheets?${params}`);
+    const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.data || "Failed to load the meter sheet.");
+  }
+  
+  return result;    
+}
+
+// get agreement Details 
+export const getCustomerAgreements = async (companyId: string, customerCode: string, periodStart: string, periodEnd: string) => {
+  const params = new URLSearchParams({ companyId, customerCode, periodStart,  periodEnd});
+  const response = await fetch(`${API_BASE}invoice/get-customer-agreements?${params}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.data || "Failed to load agreements.");
+  }
+
+  return result;
+}
+
+// search customer code or customer name suggestions function 
+export const searchCustomers = async (query: string) => {
+  const response = await fetch(`${API_BASE}creditnote/customer-search?query=${encodeURIComponent(query)}`);
+
+  const result = await response.json(); 
+
+  if (!response.ok) { 
+    throw new Error(result?.data || "Failed to search customers.");
+  }
+
+  return result as { status: number; data: CustomerSearchResult[] };
+}
+
+// search invoice number suggestions function
+export const searchInvoices = async (query: string) => {
+  debugger;
+    const response = await fetch(
+        `${API_BASE}creditnote/invoice-search?query=${encodeURIComponent(query)}`
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            result?.data || "Failed to search invoices."
+        );
+    }
+
+    return result;
+};
+
+// Create credit note function 
+export const createCreditNote = async (request: CreateCreditNoteRequest) => 
+{
+    const response = await fetch(
+        `${API_BASE}creditnote/createCreditNote`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(request),
+        }        
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create credit note.");
+    }
+
+    return data;
 }
 
 export async function getInvoiceCustomerInformation(

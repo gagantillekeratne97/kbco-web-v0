@@ -12,13 +12,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   // Default company
-  const [companyId, setCompanyId] = useState("001");
+  const [companyId, setCompanyId] = useState("001");  
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+
+  //remove this 
+  const [token, setToken] = useState("");
 
 
   // ============================================================
@@ -98,7 +101,12 @@ export default function LoginPage() {
         localStorage.setItem(
           "companyName", 
           response.companyName
-        )
+        ); 
+
+        localStorage.setItem(
+          "userRole", 
+          response.userRole
+        );
 
       } else {
 
@@ -126,6 +134,11 @@ export default function LoginPage() {
         sessionStorage.setItem(
           "companyName",
           response.companyName
+        );
+
+        sessionStorage.setItem(
+          "userRole", 
+          response.userRole
         );
       }
 

@@ -12,6 +12,7 @@ import {
   ChevronsLeft,
   ChevronDown,
   Router,
+  Folder,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,13 +21,14 @@ import { cn } from "@/lib/utils";
 
 const navItems = [  
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  //{ label: "Testing", icon: Folder, href: "/testing-page" }, 
   { label: "Invoices", icon: FileText, href: "/invoices" },  
   { label: "Pending Invoices", icon: Receipt, href: "/pending-invoice-report" },  
   { label: "Cancelled Invoices", icon: FileText, href: "/cancelled-invoice" },
   { label: "Credit Notes", icon: Receipt, href: "/credit-notes" },
   { label: "Revenue Report", icon: Router, href: "/invoice-revenue-report" },
   { label: "Internal Consumptions", icon: FileText, href: "/internal-consumption" },
-  { label: "Machines", icon: Cpu, href: "/coming-soon-page" },    
+  { label: "Machines", icon: Cpu, href: "/machines" },    
   { label: "Customers", icon: Users, href: "/coming-soon-page" },
   { label: "Spare Parts", icon: Boxes, href: "/spare-parts", 
     children: [ 
@@ -40,7 +42,8 @@ const navItems = [
     href: "/transactions",
     children: [
       { label: "New Installations", href: "/coming-soon-page" },
-      { label: "Invoices", href: "/invoice" },
+      { label: "B/W Invoices", href: "/transactions/bwinvoice-page"},
+      { label: "Color Invoices", href: "/transactions/colorinvoice-pag"},
       { label: "Credit Notes", href: "/transactions/creditnote" },
     ],
   },

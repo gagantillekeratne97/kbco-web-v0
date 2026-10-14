@@ -2,21 +2,91 @@
 
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-import { getInvoiceCustomerInformation } from "@/lib/apis";
+import {
+  createCreditNote,
+  getInvoiceCustomerInformation,
+} from "@/lib/apis";
 import { creditNoteInfo } from "@/lib/types";
+import InvoiceSearch, {
+  type InvoiceSearchResult,
+} from "@/components/invoiceSearch";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 export default function CreditNoteRequestPage() {
-  const [customerInfo, setCustomerInfo] = useState<creditNoteInfo | null>(null);
+  // =========================================================
+  // STATE
+  // =========================================================
+
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [customerInfo, setCustomerInfo] =
+    useState<creditNoteInfo | null>(null);
+
   const [invoiceNo, setInvoiceNo] = useState("");
+
   const [reason, setReason] = useState("");
 
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+
   const itemsPerPage = 10;
+
+  // =========================================================
+  // GET COMPANY ID
+  // =========================================================
+
+  const getCompanyId = (): string => {
+    const companyId =
+      localStorage.getItem("companyID") ||
+      sessionStorage.getItem("companyID");
+
+    if (!companyId) {
+      throw new Error("Company ID not found.");
+    }
+
+    return companyId;
+  };
+
+  // =========================================================
+  // HANDLE INVOICE SELECTION FROM AUTOCOMPLETE
+  // =========================================================
+
+  const handleInvoiceSelect = async (
+    invoice: InvoiceSearchResult
+  ) => {
+    try {
+      setInvoiceNo(invoice.invoiceNo);
+
+      setLoading(true);
+      setError("");
+      setCustomerInfo(null);
+      setCurrentPage(1);
+
+      const result = await getInvoiceCustomerInformation(
+        invoice.invoiceNo.trim()
+      );
+
+      setCustomerInfo(result);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch invoice information."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =========================================================
+  // MANUAL SEARCH
+  // =========================================================
 
   const handleSearch = async () => {
     if (!invoiceNo.trim()) {
@@ -30,7 +100,9 @@ export default function CreditNoteRequestPage() {
       setCustomerInfo(null);
       setCurrentPage(1);
 
-      const result = await getInvoiceCustomerInformation(invoiceNo.trim());      
+      const result = await getInvoiceCustomerInformation(
+        invoiceNo.trim()
+      );
 
       setCustomerInfo(result);
     } catch (err) {
@@ -44,6 +116,10 @@ export default function CreditNoteRequestPage() {
     }
   };
 
+  // =========================================================
+  // CLEAR
+  // =========================================================
+
   const handleClear = () => {
     setInvoiceNo("");
     setCustomerInfo(null);
@@ -52,42 +128,101 @@ export default function CreditNoteRequestPage() {
     setCurrentPage(1);
   };
 
-  const handleSubmit = () => {
+  // =========================================================
+  // SUBMIT CREDIT NOTE
+  // =========================================================
+
+  const handleSubmit = async () => {
+    // Prevent duplicate submissions
+    if (isCreating) return;
+
+    // Validate invoice
     if (!customerInfo) {
-      setError("Please search for an invoice first.");
+      toast.error("Invoice Required", {
+        description: "Please search for an invoice first.",
+        duration: 4000,
+      });
+
       return;
     }
 
+    // Validate reason
     if (!reason.trim()) {
-      setError("Please enter a reason for the credit note.");
+      toast.error("Reason Required", {
+        description:
+          "Please enter a reason for the credit note.",
+        duration: 4000,
+      });
+
       return;
     }
 
-    // TODO:
-    // Call your credit note request API here.
-    console.log("Credit Note Request:", {
-      invoiceNumber: customerInfo.invoiceNumber,
-      reason: reason.trim(),
-    });
+    try {
+      setIsCreating(true);
+
+      const result = await createCreditNote({
+        invoiceNumber: customerInfo.invoiceNumber,
+        creditNoteDate: new Date()
+          .toISOString()
+          .split("T")[0],
+        companyId: getCompanyId(),
+        reason: reason.trim(),
+      });
+
+      if (result.status === 200) {
+        toast.success("Credit Note Created", {
+          description:
+            "The credit note request was submitted successfully.",
+          duration: 4000,
+        });
+
+        handleClear();
+      } else {
+        toast.error("Failed to Submit Credit Note", {
+          description:
+            "The credit note request could not be submitted.",
+          duration: 4000,
+        });
+      }
+    } catch (err) {
+      toast.error("Unable to Create Credit Note", {
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        duration: 4000,
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  // --------------------------------------------------
-  // Pagination
-  // --------------------------------------------------
+  // =========================================================
+  // PAGINATION
+  // =========================================================
 
   const invoiceItems = customerInfo?.invoiceItems ?? [];
 
   const totalItems = invoiceItems.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const totalPages = Math.ceil(
+    totalItems / itemsPerPage
+  );
 
-  const currentItems = invoiceItems.slice(startIndex, endIndex);
+  const startIndex =
+    (currentPage - 1) * itemsPerPage;
 
-  // --------------------------------------------------
-  // Pagination page numbers
-  // --------------------------------------------------
+  const endIndex =
+    startIndex + itemsPerPage;
+
+  const currentItems = invoiceItems.slice(
+    startIndex,
+    endIndex
+  );
+
+  // =========================================================
+  // PAGINATION PAGE NUMBERS
+  // =========================================================
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -106,10 +241,21 @@ export default function CreditNoteRequestPage() {
       pages.push("...");
     }
 
-    const startPage = Math.max(2, currentPage - 1);
-    const endPage = Math.min(totalPages - 1, currentPage + 1);
+    const startPage = Math.max(
+      2,
+      currentPage - 1
+    );
 
-    for (let i = startPage; i <= endPage; i++) {
+    const endPage = Math.min(
+      totalPages - 1,
+      currentPage + 1
+    );
+
+    for (
+      let i = startPage;
+      i <= endPage;
+      i++
+    ) {
       pages.push(i);
     }
 
@@ -122,6 +268,10 @@ export default function CreditNoteRequestPage() {
     return pages;
   };
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="flex min-h-screen bg-surface font-display">
       <Sidebar />
@@ -131,9 +281,10 @@ export default function CreditNoteRequestPage() {
 
         <main className="m-5 space-y-6">
 
-          {/* =========================================================
+          {/* =====================================================
               SEARCH INVOICE
-          ========================================================= */}
+          ===================================================== */}
+
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <h2 className="mb-1 text-base font-semibold text-slate-800">
@@ -141,8 +292,11 @@ export default function CreditNoteRequestPage() {
             </h2>
 
             <p className="mb-4 text-sm text-slate-500">
-              Enter an invoice number to view the invoice information.
+              Enter an invoice number or the last digits
+              to find an invoice.
             </p>
+
+            {/* Error message */}
 
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -159,39 +313,24 @@ export default function CreditNoteRequestPage() {
 
             <div className="flex flex-col gap-2 sm:flex-row">
 
+              {/* =================================================
+                  AUTOCOMPLETE SEARCH
+              ================================================= */}
+
               <div className="relative flex-1">
 
-                {/* Search icon */}
-                <svg
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
-                  />
-                </svg>
-
-                <input
-                  id="invoiceNo"
-                  type="text"
+                <InvoiceSearch
                   value={invoiceNo}
-                  onChange={(e) => setInvoiceNo(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSearch();
-                    }
-                  }}
-                  placeholder="e.g. 26JUL_GP2P_0001"
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  onChange={setInvoiceNo}
+                  onSelect={handleInvoiceSelect}
+                  onEnter={handleSearch}
                 />
 
               </div>
+
+              {/* =================================================
+                  SEARCH BUTTON
+              ================================================= */}
 
               <button
                 type="button"
@@ -199,8 +338,14 @@ export default function CreditNoteRequestPage() {
                 disabled={loading}
                 className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Searching..." : "Search"}
+                {loading
+                  ? "Searching..."
+                  : "Search"}
               </button>
+
+              {/* =================================================
+                  CLEAR BUTTON
+              ================================================= */}
 
               <button
                 type="button"
@@ -213,29 +358,36 @@ export default function CreditNoteRequestPage() {
             </div>
           </div>
 
-
           {/* =========================================================
               INVOICE INFORMATION
           ========================================================= */}
+
           {customerInfo && (
             <>
+
+              {/* =====================================================
+                  INVOICE REVIEW
+              ===================================================== */}
+
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <div className="mb-5">
+
                   <h2 className="text-base font-semibold text-slate-800">
                     Invoice Review
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Review the invoice information before submitting the
-                    credit note request.
+                    Review the invoice information before
+                    submitting the credit note request.
                   </p>
+
                 </div>
 
-
-                {/* =====================================================
+                {/* =================================================
                     CUSTOMER INFORMATION
-                ===================================================== */}
+                ================================================= */}
+
                 <div className="mb-6">
 
                   <h3 className="mb-4 text-sm font-semibold text-slate-700">
@@ -254,7 +406,6 @@ export default function CreditNoteRequestPage() {
                       </p>
                     </div>
 
-
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                         Customer Name
@@ -264,7 +415,6 @@ export default function CreditNoteRequestPage() {
                         {customerInfo.customerName || "-"}
                       </p>
                     </div>
-
 
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -277,12 +427,13 @@ export default function CreditNoteRequestPage() {
                     </div>
 
                   </div>
+
                 </div>
 
-
-                {/* =====================================================
+                {/* =================================================
                     INVOICE INFORMATION
-                ===================================================== */}
+                ================================================= */}
+
                 <div className="mb-6 border-t border-slate-100 pt-6">
 
                   <h3 className="mb-4 text-sm font-semibold text-slate-700">
@@ -301,7 +452,6 @@ export default function CreditNoteRequestPage() {
                       </p>
                     </div>
 
-
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                         Invoice Date
@@ -317,12 +467,13 @@ export default function CreditNoteRequestPage() {
                     </div>
 
                   </div>
+
                 </div>
 
-
-                {/* =====================================================
+                {/* =================================================
                     INVOICE SUMMARY
-                ===================================================== */}
+                ================================================= */}
+
                 <div className="border-t border-slate-100 pt-6">
 
                   <h3 className="mb-4 text-sm font-semibold text-slate-700">
@@ -333,18 +484,24 @@ export default function CreditNoteRequestPage() {
 
                     <div className="w-full max-w-sm space-y-3">
 
+                      {/* Sub Total */}
+
                       <div className="flex items-center justify-between text-sm">
+
                         <span className="text-slate-500">
                           Sub Total
                         </span>
 
-                        <span className="font-medium text-slate-800">                    
+                        <span className="font-medium text-slate-800">
                           {customerInfo.subTotal}
                         </span>
+
                       </div>
 
+                      {/* SSCL */}
 
                       <div className="flex items-center justify-between text-sm">
+
                         <span className="text-slate-500">
                           SSCL
                         </span>
@@ -352,10 +509,13 @@ export default function CreditNoteRequestPage() {
                         <span className="font-medium text-slate-800">
                           {customerInfo.ssclAmount}
                         </span>
+
                       </div>
 
+                      {/* VAT */}
 
                       <div className="flex items-center justify-between text-sm">
+
                         <span className="text-slate-500">
                           VAT
                         </span>
@@ -363,8 +523,10 @@ export default function CreditNoteRequestPage() {
                         <span className="font-medium text-slate-800">
                           {customerInfo.tax}
                         </span>
+
                       </div>
 
+                      {/* Total */}
 
                       <div className="border-t border-slate-200 pt-3">
 
@@ -375,14 +537,19 @@ export default function CreditNoteRequestPage() {
                           </span>
 
                           <span className="text-lg font-bold text-slate-900">
+
                             {(
                               customerInfo.subTotal +
                               customerInfo.ssclAmount +
                               customerInfo.tax
-                            ).toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            ).toLocaleString(
+                              "en-US",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}
+
                           </span>
 
                         </div>
@@ -390,20 +557,23 @@ export default function CreditNoteRequestPage() {
                       </div>
 
                     </div>
+
                   </div>
+
                 </div>
 
               </div>
 
-
               {/* =========================================================
                   INVOICE ITEMS
               ========================================================= */}
+
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
 
                 <div className="flex flex-col gap-2 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
 
                   <div>
+
                     <h2 className="text-base font-semibold text-slate-800">
                       Invoice Items
                     </h2>
@@ -411,20 +581,25 @@ export default function CreditNoteRequestPage() {
                     <p className="mt-1 text-sm text-slate-500">
                       Read-only invoice details for verification.
                     </p>
+
                   </div>
 
                   <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                    {totalItems} {totalItems === 1 ? "Item" : "Items"}
+                    {totalItems}{" "}
+                    {totalItems === 1
+                      ? "Item"
+                      : "Items"}
                   </div>
 
                 </div>
 
-
                 {totalItems > 0 ? (
                   <>
+
                     {/* =================================================
                         TABLE
                     ================================================= */}
+
                     <div className="overflow-x-auto">
 
                       <table className="w-full min-w-[1100px] text-sm">
@@ -469,58 +644,58 @@ export default function CreditNoteRequestPage() {
 
                         </thead>
 
-
                         <tbody className="divide-y divide-slate-100">
 
-                          {currentItems.map((item, index) => (
+                          {currentItems.map(
+                            (item, index) => (
 
-                            <tr
-                              key={`${item.serialNumber}-${index}`}
-                              className="transition hover:bg-slate-50"
-                            >
+                              <tr
+                                key={`${item.serialNumber}-${index}`}
+                                className="transition hover:bg-slate-50"
+                              >
 
-                              <td className="whitespace-nowrap px-4 py-3 text-slate-500">
-                                {startIndex + index + 1}
-                              </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                                  {startIndex +
+                                    index +
+                                    1}
+                                </td>
 
+                                <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
+                                  {item.serialNumber ||
+                                    "-"}
+                                </td>
 
-                              <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
-                                {item.serialNumber || "-"}
-                              </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                                  {item.machineModel ||
+                                    "-"}
+                                </td>
 
+                                <td className="px-4 py-3 text-slate-600">
+                                  {item.mLoc || "-"}
+                                </td>
 
-                              <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                                {item.machineModel || "-"}
-                              </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                                  {item.billingMethod ||
+                                    "-"}
+                                </td>
 
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
+                                  {item.startMr ?? "-"}
+                                </td>
 
-                              <td className="px-4 py-3 text-slate-600">
-                                {item.mLoc || "-"}
-                              </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
+                                  {item.endMr ?? "-"}
+                                </td>
 
+                                <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">
+                                  {item.invoiceCopies ??
+                                    "-"}
+                                </td>
 
-                              <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                                {item.billingMethod || "-"}
-                              </td>
+                              </tr>
 
-
-                              <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
-                                {item.startMr ?? "-"}
-                              </td>
-
-
-                              <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
-                                {item.endMr ?? "-"}
-                              </td>
-
-
-                              <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">
-                                {item.invoiceCopies ?? "-"}
-                              </td>
-
-                            </tr>
-
-                          ))}
+                            )
+                          )}
 
                         </tbody>
 
@@ -528,13 +703,14 @@ export default function CreditNoteRequestPage() {
 
                     </div>
 
-
                     {/* =================================================
                         PAGINATION
                     ================================================= */}
+
                     <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
 
                       {/* Showing information */}
+
                       <p className="text-sm text-slate-500">
 
                         Showing{" "}
@@ -546,7 +722,10 @@ export default function CreditNoteRequestPage() {
                         {" "}to{" "}
 
                         <span className="font-medium text-slate-700">
-                          {Math.min(endIndex, totalItems)}
+                          {Math.min(
+                            endIndex,
+                            totalItems
+                          )}
                         </span>
 
                         {" "}of{" "}
@@ -559,67 +738,88 @@ export default function CreditNoteRequestPage() {
 
                       </p>
 
-
                       {/* Pagination buttons */}
+
                       <div className="flex items-center gap-1">
 
                         {/* Previous */}
+
                         <button
                           type="button"
                           onClick={() =>
-                            setCurrentPage((page) =>
-                              Math.max(page - 1, 1)
+                            setCurrentPage(
+                              (page) =>
+                                Math.max(
+                                  page - 1,
+                                  1
+                                )
                             )
                           }
-                          disabled={currentPage === 1}
+                          disabled={
+                            currentPage === 1
+                          }
                           className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Previous
                         </button>
 
-
                         {/* Page numbers */}
-                        {getPageNumbers().map((page, index) => {
 
-                          if (page === "...") {
+                        {getPageNumbers().map(
+                          (page, index) => {
+
+                            if (
+                              page === "..."
+                            ) {
+                              return (
+                                <span
+                                  key={`ellipsis-${index}`}
+                                  className="px-2 text-sm text-slate-400"
+                                >
+                                  ...
+                                </span>
+                              );
+                            }
+
                             return (
-                              <span
-                                key={`ellipsis-${index}`}
-                                className="px-2 text-sm text-slate-400"
+                              <button
+                                key={page}
+                                type="button"
+                                onClick={() =>
+                                  setCurrentPage(
+                                    page as number
+                                  )
+                                }
+                                className={`min-w-9 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                                  currentPage ===
+                                  page
+                                    ? "bg-indigo-600 text-white"
+                                    : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                                }`}
                               >
-                                ...
-                              </span>
+                                {page}
+                              </button>
                             );
                           }
-
-                          return (
-                            <button
-                              key={page}
-                              type="button"
-                              onClick={() =>
-                                setCurrentPage(page as number)
-                              }
-                              className={`min-w-9 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                                currentPage === page
-                                  ? "bg-indigo-600 text-white"
-                                  : "border border-slate-300 text-slate-600 hover:bg-slate-50"
-                              }`}
-                            >
-                              {page}
-                            </button>
-                          );
-                        })}
-
+                        )}
 
                         {/* Next */}
+
                         <button
                           type="button"
                           onClick={() =>
-                            setCurrentPage((page) =>
-                              Math.min(page + 1, totalPages)
+                            setCurrentPage(
+                              (page) =>
+                                Math.min(
+                                  page + 1,
+                                  totalPages
+                                )
                             )
                           }
-                          disabled={currentPage === totalPages}
+                          disabled={
+                            currentPage ===
+                            totalPages
+                          }
                           className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Next
@@ -628,6 +828,7 @@ export default function CreditNoteRequestPage() {
                       </div>
 
                     </div>
+
                   </>
                 ) : (
                   <div className="px-5 py-10 text-center text-sm text-slate-500">
@@ -637,10 +838,10 @@ export default function CreditNoteRequestPage() {
 
               </div>
 
-
               {/* =========================================================
                   CREDIT NOTE REQUEST
               ========================================================= */}
+
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <h2 className="text-base font-semibold text-slate-800">
@@ -651,6 +852,7 @@ export default function CreditNoteRequestPage() {
                   This request will be made for the entire invoice.
                 </p>
 
+                {/* Reason */}
 
                 <div className="mt-5">
 
@@ -664,7 +866,9 @@ export default function CreditNoteRequestPage() {
                   <textarea
                     id="reason"
                     value={reason}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={(e) =>
+                      setReason(e.target.value)
+                    }
                     rows={4}
                     placeholder="Enter the reason for requesting the credit note..."
                     className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -672,15 +876,31 @@ export default function CreditNoteRequestPage() {
 
                 </div>
 
+                {/* Submit */}
 
                 <div className="mt-5 flex justify-end">
 
                   <button
                     type="button"
+                    disabled={isCreating}
                     onClick={handleSubmit}
-                    className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
+                    className="inline-flex items-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Submit Credit Note Request
+
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+                        Creating Credit Note...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+
+                        Submit Credit Note Request
+                      </>
+                    )}
+
                   </button>
 
                 </div>

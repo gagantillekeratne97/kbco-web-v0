@@ -2,6 +2,7 @@
 
 import { Search, Bell, ChevronDown, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
+import NotificationBell from "./Notifications";
 
 interface TopbarProps {
   title?: string;
@@ -18,6 +19,7 @@ export function getUserInitials(username: string): string {
 export default function Topbar({ title }: TopbarProps) {
   const [displayName, setDisplayName] = useState<string>("");
   const [userCode, setUserCode] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("");
   const [companyID, setCompanyID] = useState<string>("");
   const [companyName, setCompanyName] = useState<string>("");
 
@@ -40,7 +42,11 @@ export default function Topbar({ title }: TopbarProps) {
       
     const storedCompanyName = 
     localStorage.getItem("companyName") ||
-    sessionStorage.getItem("companyName");
+    sessionStorage.getItem("companyName");    
+
+    const storedUserRole = 
+    localStorage.getItem("userRole") || 
+    sessionStorage.getItem("userRole");
 
     if (storedUserName) {
       setDisplayName(storedUserName);
@@ -55,8 +61,11 @@ export default function Topbar({ title }: TopbarProps) {
     }
 
     if (storedCompanyName) {          
-      setCompanyName(storedCompanyName);      
-      console.log(companyName);
+      setCompanyName(storedCompanyName);            
+    }
+
+    if (storedUserRole) { 
+      setUserRole(storedUserRole);
     }
   }, []);
 
@@ -96,11 +105,7 @@ export default function Topbar({ title }: TopbarProps) {
       <div className="ml-auto flex items-center gap-3">
 
         {/* Notification */}
-        <button className="relative w-10 h-10 rounded-lg hover:bg-surface flex items-center justify-center text-navy-text transition-colors">
-          <Bell size={19} />
-
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange" />
-        </button>
+        <NotificationBell />
 
         <div className="w-px h-8 bg-border hidden sm:block" />
 
@@ -124,6 +129,17 @@ export default function Topbar({ title }: TopbarProps) {
               <p className="text-xs text-navy-soft leading-tight">
                 {userCode}
               </p>
+
+              {/* Role */}
+              {userRole && (
+                <>
+                  <span className="text-slate-300">•</span>
+
+                  <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-navy/10 text-navy capitalize">
+                    {userRole}
+                  </span>
+                </>
+              )}
 
               {/* Company */}
               {companyName && (

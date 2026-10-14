@@ -99,7 +99,7 @@ export default function CreditNotePage() {
     setCurrentPage(page);
   };
 
-  return (
+    return (        
     <div className="flex min-h-screen bg-surface font-display">
 
       <Sidebar />
