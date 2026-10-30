@@ -7,6 +7,204 @@ export type kpiSummery = {
     newInvoices: { value: number; percentage: number };        
 };
 
+export interface InvoicePreview {
+  status: number;
+  master: {
+    billingMethod: string | null;
+    invAdd1: string | null;
+    invAdd2: string | null;
+    invAdd3: string | null;
+    rentalVal: number | null;
+    adjustment: number | null;
+  };
+  details: {
+    serialNo: string;
+    makeModel: string | null;
+    pNo: number | string | null;
+    mLoc: string | null;
+    startMr: number | null;
+    endMr: number | null;
+    invCopies: number | null;
+    waistage: number | null;
+  }[];
+  bw: unknown[];
+  calc: {
+    invoiceValue: number;
+    nbt: number;
+    vat: number;
+    net: number;
+    slabs: { range1: number; range2: number; rate: number; breakup: number | null }[];
+  };
+}
+
+export interface InvoiceRequestParams {
+  companyId: string;
+  customerCode: string;
+  agreementId: string;
+  periodStart: string;
+  periodEnd: string;
+  invoiceDate: string;
+  discount: number;
+  userCode: string;
+  userName: string;
+}
+
+export interface ProcessInvoiceResponse {
+  status: number;
+  invoiceNo: string;
+  afterCreditNote: boolean;
+  message: string;
+}
+
+export interface SaveMeterReadingRow {
+  serial: string;
+  endReading: number;
+  waistage: number;
+}
+
+export interface SaveMeterReadingPayload {
+  companyId: string;
+  customerCode: string;
+  agreementId: string;
+  periodStart: string;          // "yyyy-MM-dd"
+  periodEnd: string;            // "yyyy-MM-dd"
+  userName: string;
+  adjustment: number | null;
+  rows: SaveMeterReadingRow[];
+}
+
+export interface SaveMeterReadingResponse {
+  status: number;
+  mrId?: string;
+  message: string;
+}
+
+// type interfaces for invoice document pdf generating. 
+
+export interface InvoiceParty {
+  tin: string;
+  name: string;
+  address: string;
+  telephoneNo?: string;
+}
+
+export interface MachineRecord {
+    pNumber: string;
+    serialNumber: string;
+    machineModel: string;
+    customerCode: string;
+    customerName: string;
+    customerAddress: string;
+    /** used to prefill the form; the user can change them */
+    contactPerson?: string;
+    contactPhone?: string;
+    machineLocation?: string;
+};
+
+export interface MachineReturnRequest {
+    companyId: string;
+    pNumber: string;
+    serialNumber: string;
+    machineModel: string;
+    customerCode: string;
+    customerName: string;
+    customerAddress: string;
+    contactPerson: string;
+    contactPhone: string;
+    pickupLocation: string;
+    returnReason: string;
+    returnComment: string;
+};
+
+// machine return query dto 
+export interface machineReturnReqDto { 
+  query?: string, 
+  fromDate?: string; 
+  toDate: string; 
+  page: number; 
+  pageSize: number;    
+  status: string;
+  companyId: string; 
+}
+
+// machine return table columns 
+export interface machineReturnResponseDto { 
+  returnId: string; 
+  date: string; 
+  pnumber: string;
+  agreementCode?: string;
+  address?: string;
+  contactPerson?: string;
+  noOfMachines: string;
+  model?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  startMeterReading: string;
+  location?: string;
+  meterReading?: number;
+  serialNumber: string;
+  partNumber: string;
+  customerName: string; 
+  returnReason: string; 
+  department: string; 
+  installationDate: string; 
+  status: string; 
+}
+
+export interface MachineReturnResponse { 
+  status: string; 
+  message: string; 
+}
+
+export interface InvoiceItem {
+  serialNumber: string;
+  description: string;
+  location: string;
+  startMR: number;
+  endMR: number;
+  copies: number;
+  rate: number;
+  amount: number;
+}
+
+export interface InvoiceRateSlabs { 
+  range: string;  
+  rate: number;
+  copies: number;
+  amount: number; 
+}
+
+export interface InvoiceFinancialDetails {
+  totalCountOfCopies: number;
+  totalValueOfSupply: number;
+  discount: number;
+  sscl: number;
+  taxAmount: number;
+  totalAmountValue: number;
+}
+
+export interface Invoice {
+  invoiceNo: string;
+  invoiceDate: string;
+  dateOfSupply: string;
+  invoicePeriod: string;
+  poNo?: string;
+  invoiceReference: string; 
+
+  supplier: InvoiceParty;
+  purchaser: InvoiceParty;
+
+  customerCode: string;
+  placeOfSupply: string;
+
+  items: InvoiceItem[];
+  rateSlabs: InvoiceRateSlabs[];
+
+  financialDetails: InvoiceFinancialDetails;
+}
+
+// invoice generating pdf. 
+
 export type CustomerAgreement = {
   agreementId: string; 
   agreementName: string; 
@@ -17,7 +215,7 @@ export type CustomerAgreement = {
 
 // meterreading sheet machines
 
-export interface MeterSheetMachine {
+export interface MeterSheetMachine {    
     serial: string;
     model: string;
     machineRef: string;
@@ -59,6 +257,20 @@ export interface CreateCreditNoteRequest {
   companyId: string;
   reason: string;
 } 
+
+export interface CreatePartialCreditRequestPayload { 
+  invoiceNumber: string; 
+  creditNoteDate: string; 
+  companyId: string; 
+  reason: string; 
+  creditAmount: number; 
+  items: {
+    serialNumber: string; 
+    startMr: number | null; 
+    endMr: number | null; 
+    invoiceCopies: number | null 
+  }[];  
+}
 
 // Internal Consumption DTO 
 export interface InternalConsumptionDto { 

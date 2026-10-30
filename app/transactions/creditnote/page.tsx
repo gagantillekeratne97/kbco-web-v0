@@ -276,7 +276,7 @@ export default function CreditNoteRequestPage() {
     <div className="flex min-h-screen bg-surface font-display">
       <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex flex-col flex-1 min-w-0">
         <Topbar title="Credit Note Request" />
 
         <main className="m-5 space-y-6">
@@ -285,7 +285,7 @@ export default function CreditNoteRequestPage() {
               SEARCH INVOICE
           ===================================================== */}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="p-5 bg-white border shadow-sm rounded-xl border-slate-200">
 
             <h2 className="mb-1 text-base font-semibold text-slate-800">
               Search Invoice
@@ -299,14 +299,14 @@ export default function CreditNoteRequestPage() {
             {/* Error message */}
 
             {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="px-4 py-3 mb-4 text-sm text-red-700 border border-red-200 rounded-lg bg-red-50">
                 {error}
               </div>
             )}
 
             <label
               htmlFor="invoiceNo"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="block mb-2 text-sm font-medium text-slate-700"
             >
               Invoice Number
             </label>
@@ -369,7 +369,7 @@ export default function CreditNoteRequestPage() {
                   INVOICE REVIEW
               ===================================================== */}
 
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="p-5 bg-white border shadow-sm rounded-xl border-slate-200">
 
                 <div className="mb-5">
 
@@ -397,7 +397,7 @@ export default function CreditNoteRequestPage() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium tracking-wide uppercase text-slate-400">
                         Customer Code
                       </p>
 
@@ -407,7 +407,7 @@ export default function CreditNoteRequestPage() {
                     </div>
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium tracking-wide uppercase text-slate-400">
                         Customer Name
                       </p>
 
@@ -417,7 +417,7 @@ export default function CreditNoteRequestPage() {
                     </div>
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium tracking-wide uppercase text-slate-400">
                         Customer Address
                       </p>
 
@@ -434,7 +434,7 @@ export default function CreditNoteRequestPage() {
                     INVOICE INFORMATION
                 ================================================= */}
 
-                <div className="mb-6 border-t border-slate-100 pt-6">
+                <div className="pt-6 mb-6 border-t border-slate-100">
 
                   <h3 className="mb-4 text-sm font-semibold text-slate-700">
                     Invoice Information
@@ -443,7 +443,7 @@ export default function CreditNoteRequestPage() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium tracking-wide uppercase text-slate-400">
                         Invoice Number
                       </p>
 
@@ -453,7 +453,7 @@ export default function CreditNoteRequestPage() {
                     </div>
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium tracking-wide uppercase text-slate-400">
                         Invoice Date
                       </p>
 
@@ -474,7 +474,7 @@ export default function CreditNoteRequestPage() {
                     INVOICE SUMMARY
                 ================================================= */}
 
-                <div className="border-t border-slate-100 pt-6">
+                <div className="pt-6 border-t border-slate-100">
 
                   <h3 className="mb-4 text-sm font-semibold text-slate-700">
                     Invoice Summary
@@ -528,7 +528,7 @@ export default function CreditNoteRequestPage() {
 
                       {/* Total */}
 
-                      <div className="border-t border-slate-200 pt-3">
+                      <div className="pt-3 border-t border-slate-200">
 
                         <div className="flex items-center justify-between">
 
@@ -568,9 +568,9 @@ export default function CreditNoteRequestPage() {
                   INVOICE ITEMS
               ========================================================= */}
 
-              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="bg-white border shadow-sm rounded-xl border-slate-200">
 
-                <div className="flex flex-col gap-2 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 p-5 border-b border-slate-200 sm:flex-row sm:items-center sm:justify-between">
 
                   <div>
 
@@ -584,12 +584,12 @@ export default function CreditNoteRequestPage() {
 
                   </div>
 
-                  <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  <div className="px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600">
                     {totalItems}{" "}
                     {totalItems === 1
                       ? "Item"
-                      : "Items"}
-                  </div>
+                      : "Items"}                      
+                  </div>                  
 
                 </div>
 
@@ -600,43 +600,42 @@ export default function CreditNoteRequestPage() {
                         TABLE
                     ================================================= */}
 
-                    <div className="overflow-x-auto">
-
+                    <div className="overflow-x-auto">                      
                       <table className="w-full min-w-[1100px] text-sm">
 
                         <thead className="border-b border-slate-200 bg-slate-50">
 
                           <tr>
 
-                            <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-left text-slate-600">
                               #
                             </th>
 
-                            <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-left text-slate-600">
                               Serial Number
                             </th>
 
-                            <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-left text-slate-600">
                               Machine Model
                             </th>
 
-                            <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-left text-slate-600">
                               Location
                             </th>
 
-                            <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-left text-slate-600">
                               Billing Method
                             </th>
 
-                            <th className="px-4 py-3 text-right font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-right text-slate-600">
                               Start MR
                             </th>
 
-                            <th className="px-4 py-3 text-right font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-right text-slate-600">
                               End MR
                             </th>
 
-                            <th className="px-4 py-3 text-right font-semibold text-slate-600">
+                            <th className="px-4 py-3 font-semibold text-right text-slate-600">
                               Copies
                             </th>
 
@@ -654,18 +653,18 @@ export default function CreditNoteRequestPage() {
                                 className="transition hover:bg-slate-50"
                               >
 
-                                <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                                <td className="px-4 py-3 whitespace-nowrap text-slate-500">
                                   {startIndex +
                                     index +
                                     1}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
+                                <td className="px-4 py-3 font-medium whitespace-nowrap text-slate-800">
                                   {item.serialNumber ||
                                     "-"}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                                <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                                   {item.machineModel ||
                                     "-"}
                                 </td>
@@ -674,20 +673,20 @@ export default function CreditNoteRequestPage() {
                                   {item.mLoc || "-"}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                                <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                                   {item.billingMethod ||
                                     "-"}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
+                                <td className="px-4 py-3 text-right whitespace-nowrap text-slate-600">
                                   {item.startMr ?? "-"}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">
+                                <td className="px-4 py-3 text-right whitespace-nowrap text-slate-600">
                                   {item.endMr ?? "-"}
                                 </td>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">
+                                <td className="px-4 py-3 font-medium text-right whitespace-nowrap text-slate-800">
                                   {item.invoiceCopies ??
                                     "-"}
                                 </td>
@@ -707,7 +706,7 @@ export default function CreditNoteRequestPage() {
                         PAGINATION
                     ================================================= */}
 
-                    <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 px-4 py-4 border-t border-slate-200 sm:flex-row sm:items-center sm:justify-between">
 
                       {/* Showing information */}
 
@@ -758,7 +757,7 @@ export default function CreditNoteRequestPage() {
                           disabled={
                             currentPage === 1
                           }
-                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="px-3 py-2 text-sm font-medium transition border rounded-lg border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Previous
                         </button>
@@ -820,7 +819,7 @@ export default function CreditNoteRequestPage() {
                             currentPage ===
                             totalPages
                           }
-                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="px-3 py-2 text-sm font-medium transition border rounded-lg border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Next
                         </button>
@@ -831,7 +830,7 @@ export default function CreditNoteRequestPage() {
 
                   </>
                 ) : (
-                  <div className="px-5 py-10 text-center text-sm text-slate-500">
+                  <div className="px-5 py-10 text-sm text-center text-slate-500">
                     No invoice items found.
                   </div>
                 )}
@@ -842,7 +841,7 @@ export default function CreditNoteRequestPage() {
                   CREDIT NOTE REQUEST
               ========================================================= */}
 
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="p-5 bg-white border shadow-sm rounded-xl border-slate-200">
 
                 <h2 className="text-base font-semibold text-slate-800">
                   Credit Note Request
@@ -858,7 +857,7 @@ export default function CreditNoteRequestPage() {
 
                   <label
                     htmlFor="reason"
-                    className="mb-2 block text-sm font-medium text-slate-700"
+                    className="block mb-2 text-sm font-medium text-slate-700"
                   >
                     Reason for Credit Note
                   </label>
@@ -878,7 +877,7 @@ export default function CreditNoteRequestPage() {
 
                 {/* Submit */}
 
-                <div className="mt-5 flex justify-end">
+                <div className="flex justify-end mt-5">
 
                   <button
                     type="button"
@@ -889,13 +888,13 @@ export default function CreditNoteRequestPage() {
 
                     {isCreating ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
 
                         Creating Credit Note...
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
 
                         Submit Credit Note Request
                       </>

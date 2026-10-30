@@ -3,12 +3,16 @@
 import { useRef, useState } from "react";
 import type { Readings } from "./data";
 import StepSelect from "./StepSelect";
-// import StepReadings from "./StepReading";   // re-enable after the meter sheet endpoint
-// import StepReview from "./Stepreview";      // re-enable after the meter sheet endpoint
-import { btnSecondary, card, Stepper } from "./ui";
-import { type CustomerSearchResult } from "./customerSearch";
-import { type CustomerAgreement } from "@/lib/types";
 import StepReadings from "./StepReading";
+import StepReview from "./Stepreview";
+import StepDone from "./StepDone";
+import { Stepper } from "./ui";
+import { type CustomerSearchResult } from "./customerSearch";
+import { getInvoiceNumber } from "@/lib/apis";
+import { type CustomerAgreement } from "@/lib/types";
+
+const getCompanyId = (): string =>
+    localStorage.getItem("companyID") || sessionStorage.getItem("companyID") || "";
 
 export default function BWInvoiceWizard() {
     const [step, setStep] = useState(0);
@@ -19,6 +23,8 @@ export default function BWInvoiceWizard() {
     const [readings, setReadings] = useState<Readings>({});
     const [adjustment, setAdjustment] = useState("0");
     const [message, setMessage] = useState("");
+    // created = just processed in this wizard, view = opened from an "Already invoiced" card
+    const [completed, setCompleted] = useState<{ invoiceNo: string; mode: "created" | "view" } | null>(null);
     const timer = useRef<ReturnType<typeof setTimeout>>();
 
     const toast = (m: string) => {
@@ -34,61 +40,94 @@ export default function BWInvoiceWizard() {
         setStep(1);
     };
 
-    // After processing an invoice: go back to Step 1.
+    // StepReview calls this once the invoice is created
+    const onInvoiceCreated = (invoiceNo: string) => {
+        setCompleted({ invoiceNo, mode: "created" });
+    };
+
+    // "View invoice" on an already invoiced agreement card
+    const viewInvoice = async (a: CustomerAgreement) => {
+        if (!customer) return;
+        try {
+            const invoiceNo = await getInvoiceNumber({
+                companyId: getCompanyId(),
+                customerCode: customer.customerCode,
+                agreementId: a.agreementId,
+                periodStart: start,
+                periodEnd: end,
+            });
+            setCompleted({ invoiceNo, mode: "view" });
+        } catch (err) {
+            toast(err instanceof Error ? err.message : "Could not find the invoice.");
+        }
+    };
+
+    // After processing: back to Step 1 with a clean slate.
     // StepSelect reloads the agreements, so the server reports the new "invoiced" status.
-    const finish = () => {
+    const startNew = () => {
+        setCompleted(null);
         setAgreement(null);
+        setReadings({});
+        setAdjustment("0");
         setStep(0);
     };
 
     return (
         <div className="mx-auto max-w-5xl">
-            <Stepper step={step} />            
+            <Stepper step={step} />
 
-            {step === 0 && (
-                <StepSelect
-                    customer={customer}
-                    onCustomer={setCustomer}
-                    start={start}
-                    end={end}
-                    onStart={setStart}
-                    onEnd={setEnd}
-                    onPick={pickAgreement}
+            {completed && customer ? (
+                <StepDone
+                    invoiceNo={completed.invoiceNo}
+                    customerName={customer.customerName}
+                    mode={completed.mode}
+                    // viewing: just return to the agreement list (customer and dates are kept)
+                    onNew={completed.mode === "view" ? () => setCompleted(null) : startNew}
                 />
-            )}            
+            ) : (
+                <>
+                    {step === 0 && (
+                        <StepSelect
+                            customer={customer}
+                            onCustomer={setCustomer}
+                            start={start}
+                            end={end}
+                            onStart={setStart}
+                            onEnd={setEnd}
+                            onPick={pickAgreement}
+                            onViewInvoice={viewInvoice}
+                        />
+                    )}
 
-            {step === 1 && agreement && customer && (
-                <StepReadings
-                    customer={customer}
-                    agreement={agreement}
-                    start={start}
-                    end={end}
-                    readings={readings}
-                    onReadings={setReadings}
-                    adjustment={adjustment}
-                    onAdjustment={setAdjustment}
-                    onBack={() => setStep(0)}
-                    onNext={() => setStep(2)}
-                    onToast={toast}
-                />
-            )}
+                    {step === 1 && agreement && customer && (
+                        <StepReadings
+                            customer={customer}
+                            agreement={agreement}
+                            start={start}
+                            end={end}
+                            readings={readings}
+                            onReadings={setReadings}
+                            adjustment={adjustment}
+                            onAdjustment={setAdjustment}
+                            onBack={() => setStep(0)}
+                            onNext={() => setStep(2)}
+                            onToast={toast}
+                        />
+                    )}
 
-            {/* placeholder until the invoice preview endpoint exists */}
-            {step === 2 && agreement && (
-                <div className={`${card} space-y-3 p-5`}>
-                    <p className="text-sm text-slate-500">The invoice review will load here once the preview endpoint is ready.</p>
-                    <button type="button" className={btnSecondary} onClick={() => setStep(1)}>Back</button>
-                </div>
+                    {step === 2 && agreement && customer && (
+                        <StepReview
+                            customer={customer}
+                            agreement={agreement}
+                            start={start}
+                            end={end}
+                            onBack={() => setStep(1)}
+                            onDone={onInvoiceCreated}
+                            onToast={toast}
+                        />
+                    )}
+                </>
             )}
-
-            {/*
-            {step === 1 && agreement && (
-                <StepReadings ... />
-            )}
-            {step === 2 && agreement && customer && (
-                <StepReview ... />
-            )}
-            */}
 
             {message && (
                 <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">

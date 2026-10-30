@@ -3,8 +3,8 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { Readings } from "./data";
 import { btnPrimary, btnSecondary, card, inputCls } from "./ui";
-import { getMeterSheet } from "@/lib/apis";
-import type { CustomerAgreement, MeterSheet } from "@/lib/types";
+import { getMeterSheet, saveMeterReading } from "@/lib/apis";
+import type { CustomerAgreement, MeterSheet, SaveMeterReadingPayload } from "@/lib/types";
 import type { CustomerSearchResult } from "./customerSearch";
 
 interface Props {
@@ -36,18 +36,70 @@ export default function StepReadings({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [filter, setFilter] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    const getUserName = ():string => { 
+        var username = localStorage.getItem("userName") || sessionStorage.getItem("userName") || ""; 
+        return username;
+    }
+
+    const buildPayload = (): SaveMeterReadingPayload => ({
+    companyId: getCompanyId(),
+    customerCode: customer.customerCode,
+    agreementId: agreement.agreementId,
+    periodStart: start,
+    periodEnd: end,
+    userName: getUserName(),
+    adjustment: toNum(adjustment),
+    rows: rows
+        .filter((r) => !r.hardErr && toNum(readings[r.serial]?.end) !== null)
+        .map((r) => ({
+            serial: r.serial,
+            endReading: toNum(readings[r.serial]?.end) as number,
+            waistage: toNum(readings[r.serial]?.waste) ?? 0,
+        })),
+    });
+
+    // returns true if the save worked
+    const saveAndContinue = async (): Promise<boolean> => {
+        debugger;
+        const payload = buildPayload();
+
+        if (payload.rows.length === 0) {
+            onToast("Enter at least one end reading first.");
+            return false;
+        }
+
+        try {
+            setSaving(true);
+            await saveMeterReading(payload);
+            return true;
+        } catch (err: any) {
+            onToast(err?.response?.data?.message ?? "Failed to save meter readings.");
+            return false;
+        } finally {
+            setSaving(false);
+        }
+    };    
+
+    const onSaveDraft = async () => {
+        if (await saveAndContinue()) onToast("Draft saved.");
+    };
+
+    const onSaveAndContinue = async () => {
+        if (await saveAndContinue()) onNext();
+    };
 
     // Load the meter sheet, then fill the grid with any saved readings
     useEffect(() => {
-        let cancelled = false;
+        let cancelled = false;        
 
         const load = async () => {
-            try {
-                debugger;
+            try {                
                 setLoading(true);
                 setError("");
                 const response = await getMeterSheet(
-                    getCompanyId(), customer.customerCode, agreement.agreementId, start, end
+                    getCompanyId(), customer.customerCode, agreement.agreementId, start, end, getUserName()
                 );
                 if (cancelled) return;
 
@@ -234,12 +286,21 @@ export default function StepReadings({
             <div className="flex justify-between gap-3">
                 <button type="button" className={btnSecondary} onClick={onBack}>Back</button>
                 <div className="flex gap-3">
-                    <button type="button" className={btnSecondary} disabled={locked}
-                        onClick={() => onToast("Saving drafts will be connected to the save endpoint.")}>
-                        Save draft
+                    <button
+                        type="button"
+                        className={btnSecondary}
+                        disabled={locked || saving}
+                        onClick={onSaveDraft}
+                    >
+                        {saving ? "Saving..." : "Save draft"}
                     </button>
-                    <button type="button" className={btnPrimary} disabled={!allDone || locked} onClick={onNext}>
-                        Save & continue
+                    <button
+                        type="button"
+                        className={btnPrimary}
+                        disabled={!allDone || locked || saving}
+                        onClick={onSaveAndContinue}
+                    >
+                        {saving ? "Saving..." : "Save & continue"}
                     </button>
                 </div>
             </div>

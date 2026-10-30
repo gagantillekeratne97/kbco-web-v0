@@ -1,7 +1,8 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList} from "./types";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto} from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
+import { promises } from "dns";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -179,6 +180,55 @@ export async function getInternalConsumption(
   return await response.json();
 }
 
+// Reads the response once and turns any failure into an Error with a useful message.
+// Handles JSON bodies ({ message }), validation errors ({ title }) and plain text (e.g. NotFound("..."))
+async function readResponse(response: Response, fallback: string) {
+  const text = await response.text();
+
+  let body: any = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    // not JSON, keep the raw text
+  }
+
+  if (!response.ok) {
+    throw new Error(body?.message || body?.title || text || fallback);
+  }
+
+  return body;
+}
+
+export async function getColorInvoicePreview(params: InvoiceRequestParams): Promise<InvoicePreview> {
+  debugger;
+  const query = new URLSearchParams(
+    Object.entries(params).map(([k, v]) => [k, String(v)])
+  ).toString();
+
+  const response = await fetch(`${API_BASE}invoice/color-invoice-preview?${query}`);
+  return readResponse(response, "Failed to load the color invoice preview.");
+}
+
+// Step 3: calculate the invoice from the saved readings, saves nothing
+export async function getInvoicePreview(params: InvoiceRequestParams): Promise<InvoicePreview> {
+  const query = new URLSearchParams(
+    Object.entries(params).map(([k, v]) => [k, String(v)])
+  ).toString();
+
+  const response = await fetch(`${API_BASE}invoice/invoice-preview?${query}`);
+  return readResponse(response, "Failed to load the invoice preview.");
+}
+
+// Step 3: create the invoice
+export async function processInvoice(payload: InvoiceRequestParams): Promise<ProcessInvoiceResponse> {
+  const response = await fetch(`${API_BASE}invoice/process-invoice`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return readResponse(response, "Failed to process the invoice.");
+}
+
 //start syncing data to the system
 export async function processRecords(parts: PartsModel[]) {
   const response = await fetch(`${API_BASE}parts/process-data`, {
@@ -347,11 +397,25 @@ export async function getCancelledInvoiceLists(params: InvoiceRequestQuery): Pro
   return response.json();
 }
 
+export const getColorMeterSheet = async(companyId: string, customerCode: string, agreementId: string,
+  periodStart: string, periodEnd: string, userName: string
+) => { 
+  const params = new URLSearchParams({ companyID: companyId, customerCode, agreementId, periodStart, periodEnd, userName });
+    const response = await fetch(`${API_BASE}invoice/get-color-meter-sheets?${params}`);
+    const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.data || "Failed to load the meter sheet.");
+  }
+  
+  return result;    
+}
+
 // get meter reading sheets 
 export const getMeterSheet = async (companyId: string, customerCode: string, agreementId: string, 
-  periodStart: string, periodEnd: string 
-) => { 
-    const params = new URLSearchParams({ companyID: companyId, customerCode, agreementId, periodStart, periodEnd });
+  periodStart: string, periodEnd: string, userName: string
+) => {   
+    const params = new URLSearchParams({ companyID: companyId, customerCode, agreementId, periodStart, periodEnd, userName });
     const response = await fetch(`${API_BASE}invoice/get-meter-sheets?${params}`);
     const result = await response.json();
 
@@ -388,11 +452,29 @@ export const searchCustomers = async (query: string) => {
   return result as { status: number; data: CustomerSearchResult[] };
 }
 
+// search machines by serial number or pnumber 
+
+export const searchMachines = async (query: string) => { 
+  const companyID = getCompanyId(); 
+  const response = await fetch(
+    `${API_BASE}machinemovement/search-machine?query=${encodeURIComponent(query)}&companyId=${encodeURIComponent(companyID)}`
+  );
+
+  const result = await response.json(); 
+
+  if (!response.ok) { 
+    throw new Error(result?.data || "Failed to search machines");
+  }
+
+  return result; 
+}
+
 // search invoice number suggestions function
 export const searchInvoices = async (query: string) => {
-  debugger;
+  debugger;    
+  const companyID = getCompanyId();
     const response = await fetch(
-        `${API_BASE}creditnote/invoice-search?query=${encodeURIComponent(query)}`
+        `${API_BASE}creditnote/invoice-search?query=${encodeURIComponent(query)}&companyId=${encodeURIComponent(companyID)}`
     );
 
     const result = await response.json();
@@ -405,6 +487,157 @@ export const searchInvoices = async (query: string) => {
 
     return result;
 };
+
+// These functions are for machine searching in machine return page 
+
+export async function searchMachine(params: {
+  q: string;
+  companyId: string;
+}): Promise<MachineRecord[]> {
+  debugger;
+  const query = new URLSearchParams(params).toString();
+
+  const response = await fetch(`${API_BASE}machinemovement/search?${query}`, {
+    headers: { Accept: "application/json" },
+    // credentials: "include",                   // if you authenticate with cookies
+    // headers: { Authorization: `Bearer ${token}` },  // if you use a bearer token
+  });
+
+  if (!response.ok) {
+    // surface the server's message (e.g. 400/404/409) to the caller
+    const message = await response.text().catch(() => "");
+    throw new Error(message || `Search failed (${response.status})`);
+  }
+
+  return (await response.json()) as MachineRecord[];
+}
+
+// This function is the machine return submit function 
+export const submitMachineReturns = async (payload: MachineReturnRequest) => { 
+  debugger;
+  const response = await fetch(`${API_BASE}machinemovement/submit-return-request`, { 
+    method: "POST", 
+    headers: { 
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json(); 
+
+  if (!response.ok) { 
+    throw new Error(data.message || "Failed to create machine return.");
+  }
+
+  return data;
+}
+
+export async function getInvoiceNumber(params: {
+  companyId: string;
+  customerCode: string;
+  agreementId: string;
+  periodStart: string;
+  periodEnd: string;
+}): Promise<string> {
+  const query = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE}invoice/invoice-number?${query}`);
+  const result = await readResponse(response, "Failed to find the invoice.");
+  return result.invoiceNo;
+}
+
+export const getInvoiceLayoutDetails = async (
+  invoiceNumber: string,
+  companyId: string
+): Promise<Invoice> => {
+  const params = new URLSearchParams({
+    invoiceNumber: invoiceNumber.trim(),
+    companyId: companyId.trim(),
+  });
+
+  const response = await fetch(
+    `${API_BASE}invoice/invoice-document?${params.toString()}`
+  );
+
+  // A 404 from NotFound() can have an empty body, so don't assume JSON.
+  const text = await response.text();
+  const result = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+  throw new Error(
+    result?.message || result?.title || "Failed to load invoice details"
+  );
+  }
+
+  if (!result?.data) {
+    throw new Error("Invoice not found");
+  }
+
+  return result.data as Invoice;  
+};
+
+export const createPartialCreditNote = async (payload: CreatePartialCreditRequestPayload) => { 
+  const response = await fetch(
+    `${API_BASE}creditnote/createPartialCreditnote`, {
+      method: "POST", 
+      headers: { 
+        "Content-Type": "application/json"
+      }, 
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create credit note.");
+    }
+
+    return data;
+}
+
+// save color meter reading
+export const saveColorMeterReading = async (request: SaveMeterReadingPayload) => {
+  const response = await fetch(
+    `${API_BASE}invoice/save-color-meter-reading`, {
+      method: "POST", 
+      headers: { 
+        "Content-Type": "application/json",
+      }, 
+      body: JSON.stringify(request)
+    }
+  );
+
+  const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create credit note.");
+    }
+
+    return data;
+}
+
+// save meter reading 
+export const saveMeterReading = async (request: SaveMeterReadingPayload) => { 
+  debugger;
+  const response = await fetch(
+    `${API_BASE}invoice/save-meter-reading`, 
+    {
+      method: "POST", 
+      headers: { 
+        "Content-Type": "application/json",
+      }, 
+      body: JSON.stringify(request)
+    }    
+  );
+
+  const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create credit note.");
+    }
+
+    return data;
+}
 
 // Create credit note function 
 export const createCreditNote = async (request: CreateCreditNoteRequest) => 
@@ -614,6 +847,43 @@ export async function getInvoiceLists(params: InvoiceRequestQuery): Promise<Pagi
   return response.json();
 }
 
+export async function getMachineReturnLists(params: machineReturnReqDto): Promise<PaginatedResult<machineReturnResponseDto>> {
+  debugger;
+  const searchParams = new URLSearchParams(); 
+  
+  if (params.query) {
+    searchParams.set("query", params.query);
+  }
+
+  if (params.fromDate) {
+    searchParams.set("fromDate", params.fromDate);
+  }
+
+  if (params.toDate) {
+    searchParams.set("toDate", params.toDate);
+  } 
+
+  searchParams.set("page", params.page.toString());
+
+  searchParams.set(
+    "pageSize",
+    params.pageSize.toString()
+  );
+
+  searchParams.set("companyId", params.companyId);
+  console.log(params.status);
+  searchParams.set("invoiceStatus", params.status);
+
+  const response = await fetch(
+    `${API_BASE}MachineMovement/get-machine-returns?${searchParams.toString()}`    
+  );
+
+  if (!response.ok) { 
+    throw new Error("Failed to fetch Machine returns.");
+  }
+
+  return response.json();
+}
 
 export async function getMachineStatus(): Promise<MachineStatusSummary> {
   const companyId = getCompanyId();

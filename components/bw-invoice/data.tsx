@@ -28,6 +28,7 @@ export interface Agreement {
 }
 
 export interface ReadingInput {
+    start?: string;
     end: string;
     waste: string;
 }

@@ -14,12 +14,13 @@ interface Props {
     onStart: (v: string) => void;
     onEnd: (v: string) => void;
     onPick: (a: CustomerAgreement) => void;
+    onViewInvoice: (a: CustomerAgreement) => void;
 }
 
 const getCompanyId = (): string =>
     localStorage.getItem("companyID") || sessionStorage.getItem("companyID") || "";
 
-export default function StepSelect({ customer, onCustomer, start, end, onStart, onEnd, onPick }: Props) {
+export default function StepSelect({ customer, onCustomer, start, end, onStart, onEnd, onPick, onViewInvoice }: Props) {
     const [q, setQ] = useState(customer?.customerName ?? "");
     const [agreements, setAgreements] = useState<CustomerAgreement[]>([]);
     const [loading, setLoading] = useState(false);
@@ -123,11 +124,11 @@ export default function StepSelect({ customer, onCustomer, start, end, onStart, 
                                     <button
                                         type="button"
                                         className={`${locked || empty ? btnSecondary : btnPrimary} mt-auto`}
-                                        disabled={locked || empty}
-                                        onClick={() => onPick(a)}
+                                        disabled={empty && !locked}
+                                        onClick={() => (locked ? onViewInvoice(a) : onPick(a))}
                                     >
                                         {locked
-                                            ? "Already invoiced"
+                                            ? "View invoice"
                                             : empty
                                             ? "No machines"
                                             : a.status === "saved"

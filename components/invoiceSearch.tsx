@@ -25,7 +25,7 @@ export default function InvoiceSearch({
 }: InvoiceSearchProps) {
     const [results, setResults] = useState<InvoiceSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
-    const [showResults, setShowResults] = useState(false);
+    const [showResults, setShowResults] = useState(false);    
 
     useEffect(() => {
         if (value.trim().length < 3) {
@@ -36,8 +36,7 @@ export default function InvoiceSearch({
 
         const timer = setTimeout(async () => {
             try {
-                setLoading(true);
-
+                setLoading(true);                
                 const response = await searchInvoices(value);
 
                 setResults(response.data || []);
@@ -64,8 +63,7 @@ export default function InvoiceSearch({
             {/* Search input */}
             <div className="relative">
                 <Search
-                    className="absolute left-3 top-1/2 h-4 w-4
-                    -translate-y-1/2 text-muted-foreground"
+                    className="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-muted-foreground"
                 />
 
                 <input
@@ -78,45 +76,25 @@ export default function InvoiceSearch({
                         }
                     }}
                     placeholder="Search invoice or last digits..."
-                    className="
-                        h-10 w-full rounded-md border
-                        bg-background pl-9 pr-10
-                        text-sm outline-none
-                        focus:ring-2 focus:ring-ring
-                    "
+                    className="w-full h-10 pr-10 text-sm border rounded-md outline-none bg-background pl-9 focus:ring-2 focus:ring-ring"
                 />
 
                 {loading && (
                     <Loader2
-                        className="
-                            absolute right-3 top-1/2
-                            h-4 w-4 -translate-y-1/2
-                            animate-spin text-muted-foreground
-                        "
+                        className="absolute w-4 h-4 -translate-y-1/2 right-3 top-1/2 animate-spin text-muted-foreground"
                     />
                 )}
             </div>
 
             {/* Suggestions */}
             {showResults && results.length > 0 && (
-                <div
-                    className="
-                        absolute z-50 mt-1 w-full
-                        overflow-hidden rounded-md border
-                        bg-popover shadow-lg
-                    "
-                >
+                <div className="absolute z-50 w-full mt-1 overflow-y-auto overscroll-contain border rounded-md shadow-lg max-h-72 bg-popover scrollbar-thin">
                     {results.map((invoice) => (
                         <button
                             key={invoice.invoiceNo}
                             type="button"
                             onClick={() => handleSelect(invoice)}
-                            className="
-                                flex w-full flex-col
-                                items-start px-4 py-3
-                                text-left transition-colors
-                                hover:bg-accent
-                            "
+                            className="flex flex-col items-start w-full px-4 py-3 text-left transition-colors hover:bg-accent"
                         >
                             <span className="font-medium">
                                 {invoice.invoiceNo}
@@ -146,13 +124,7 @@ export default function InvoiceSearch({
                 value.trim().length >= 3 &&
                 results.length === 0 && (
                     <div
-                        className="
-                            absolute z-50 mt-1 w-full
-                            rounded-md border bg-popover
-                            p-4 text-center
-                            text-sm text-muted-foreground
-                            shadow-lg
-                        "
+                        className="absolute z-50 w-full p-4 mt-1 text-sm text-center border rounded-md shadow-lg bg-popover text-muted-foreground"
                     >
                         No invoices found.
                     </div>

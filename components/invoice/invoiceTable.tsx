@@ -20,7 +20,11 @@ import {
   FileX2,
   Search,
   RotateCcw,
+  Link,
+  PrinterIcon,
+  Eye,
 } from "lucide-react";
+import InvoiceViewerModal from "../InvoiceViewer/invoiceViewerModal";
 
 interface InvoiceTableProps {
   data: InvoiceLists[];
@@ -103,6 +107,10 @@ const formatAmount = (value?: number | null) => {
   });
 };
 
+const stickyActionCell =
+  "sticky left-[56px] z-[1] min-w-[110px] bg-white px-4 py-3 text-center transition-colors group-hover:bg-slate-50 shadow-[1px_0_0_#e2e8f0]";
+
+
 const cellBase =
   "px-4 py-3 text-sm text-slate-700 whitespace-nowrap";
 
@@ -124,6 +132,8 @@ export default function InvoiceTable({
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");  
+  const [isModalOpen, setIsModalOpen] = useState(false);  
+  const [viewInvoiceNo, setViewInvoiceNo] = useState("");
 
   const handleSearch = () => {
     onSearch?.({
@@ -192,6 +202,10 @@ const getStatusStyle = (status?: string) => {
 
                 <TableHead className="px-4 py-3">
                   #
+                </TableHead>
+
+                <TableHead className="px-4 py-3"> 
+                  Actions
                 </TableHead>
 
                 <TableHead className="px-4 py-3">
@@ -313,6 +327,24 @@ const getStatusStyle = (status?: string) => {
                         {getRowNumber(index)}
                       </TableCell>
 
+                      <TableCell className={stickyActionCell}>                                                  
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();            // don't also fire the row's onClick
+                            setViewInvoiceNo(String(invoiceInfo.invoiceNo));
+                            setIsModalOpen(true);
+                            // setViewCNNo(String(creditNote.cnNo));
+                            // setInvoiceModal(true);
+                          }}
+                          aria-label={`View credit note ${invoiceInfo.invoiceNo}`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                        >
+                          <Eye size={14} strokeWidth={2} />
+                          View
+                        </button>                                         
+                      </TableCell>
+
                       <TableCell className={cellStrong}>
                         {invoiceInfo.invoiceNo}
                       </TableCell>
@@ -432,6 +464,15 @@ const getStatusStyle = (status?: string) => {
             </TableBody>
           </Table>
         </div>
+
+        <InvoiceViewerModal
+                    open={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title="Invoice Viewer"
+                    documentLabel="Invoice"
+                    initialInvoiceNumber={viewInvoiceNo}
+                    hideSearch
+                  />
 
         {/* PAGINATION */}
         <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

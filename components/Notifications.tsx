@@ -99,7 +99,8 @@ export default function NotificationBell() {
 
             connection = new HubConnectionBuilder()
                 .withUrl(
-                    "https://kbco-reports.servvista.com/api/hubs/creditnotes",
+                    "https://localhost:7136/api/hubs/creditNotes",
+                    //"https://kbco-reports.servvista.com/api/hubs/creditnotes",
                     {
                         accessTokenFactory: () =>
                             localStorage.getItem("token") ||

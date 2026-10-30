@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CreditNote } from "@/lib/types";
+import type { CreditNote, Invoice } from "@/lib/types";
 
 import {
   Table,
@@ -25,12 +25,16 @@ import {
   Clock3,
   LoaderCircle,
   Ban,
-  CircleHelp,
+  CircleHelp,  
   Eye,
+  PrinterIcon,
+  ReceiptEuro
 } from "lucide-react";
 import Link from "next/link";
-import { approveCreditNoteFinance, approveCreditNoteHOD, getInvoiceCustomerInformation } from "@/lib/apis";
+import { approveCreditNoteFinance, approveCreditNoteHOD, getInvoiceCustomerInformation, getInvoiceLayoutDetails } from "@/lib/apis";
 import CreditNoteModal from "../credit-note-modal/creditNoteModal";
+import InvoicePDF from "../invoiceGenerate/InvoicePDF";
+import InvoiceViewerModal from "../InvoiceViewer/invoiceViewerModal";
 
 interface CreditNoteTableProps {
   data: CreditNote[];
@@ -216,14 +220,17 @@ export default function CreditNoteTable({
   isLoading = false,
   onSearch,
 }: CreditNoteTableProps) {
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [status, setStatus] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);  
   const [selectedCNNo, setSelectedCNNo] = useState("");
-  const [userRole, setUserRole] = useState("");
-
+  const [userRole, setUserRole] = useState("");  
+  const [isInvoiceViewModalOpen, setInvoiceModal] = useState(false);
+  const [viewCNNo, setViewCNNo] = useState("");
+ 
   /* =======================================================
      SEARCH / CLEAR
   ======================================================= */  
@@ -267,8 +274,32 @@ export default function CreditNoteTable({
     });
 
     onPageChange(1);
-  };  
+  };    
 
+  const getCompanyId = (): string => { 
+    const companyId = localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
+    if (!companyId) {
+      throw new Error("Company ID Not Found.");
+    }
+
+    return companyId;
+  }
+
+  /* =======================================================
+     GENERATE CREDIT NOTE PDF AS WELL.
+  ======================================================= */
+  const GenerateCreditNoteDocument = async (cnNo: string) => {
+    debugger;
+    const creditNoteNumber = cnNo;
+    const companyID = getCompanyId();    
+    try {
+      const data = await getInvoiceLayoutDetails(creditNoteNumber, companyID);
+      setInvoice(data);
+    } catch (err) {
+      console.error(err);      
+    } finally {      
+    }
+  }
   /* =======================================================
      ROW CLICK
      (replace with router.push to the approval page)
@@ -495,6 +526,7 @@ export default function CreditNoteTable({
             <TableHeader>
               <TableRow className="border-b border-slate-200 bg-slate-50 hover:bg-slate-50">
                 <TableHead className={stickyNumHead}>#</TableHead>
+                <TableHead className={stickyActionHead}>Print</TableHead>
                 <TableHead className={stickyActionHead}>Action</TableHead>
                 <TableHead className={headBase}>Credit Note No</TableHead>
                 <TableHead className={headBase}>
@@ -586,6 +618,33 @@ export default function CreditNoteTable({
                         {getRowNumber(index)}
                       </TableCell>
 
+                      {/* PRINT BUTTON */}
+                      <TableCell className={stickyActionCell}>  
+                        <Link 
+                        href="#"
+                        onClick={() => { 
+                          {/*the printing function action should be called here.*/}
+                        }}
+                        aria-label={`Print credit note ${creditNote.cnNo}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">                         
+                        <PrinterIcon size={14} strokeWidth={2} />
+                        Print
+                        </Link>                        
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();            // don't also fire the row's onClick
+                            setViewCNNo(String(creditNote.cnNo));
+                            setInvoiceModal(true);
+                          }}
+                          aria-label={`View credit note ${creditNote.cnNo}`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                        >
+                          <Eye size={14} strokeWidth={2} />
+                          View
+                        </button>                                         
+                      </TableCell>
+
                       {/* VIEW BUTTON */}
 
                       <TableCell className={stickyActionCell}>
@@ -598,8 +657,8 @@ export default function CreditNoteTable({
                           aria-label={`View credit note ${creditNote.cnNo}`}                          
                           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                         >
-                          <Eye size={14} strokeWidth={2} />
-                          View
+                          <ReceiptEuro size={14} strokeWidth={2} />
+                          Approve/Reject
                         </Link>
                       </TableCell>                                            
                       {/* CREDIT NOTE NUMBER */}
@@ -766,7 +825,7 @@ export default function CreditNoteTable({
                 })
               )}
             </TableBody>
-          </Table>          
+          </Table>                    
 
           {(["Doculine", "P2P"].includes(userRole)) && (
               <CreditNoteModal
@@ -778,6 +837,16 @@ export default function CreditNoteTable({
                   }}
               />
           )}
+
+          <InvoiceViewerModal
+            open={isInvoiceViewModalOpen}
+            onClose={() => setInvoiceModal(false)}
+            title="Credit Note Viewer"
+            documentLabel="Credit Note"
+            variant="creditNote"
+            initialInvoiceNumber={viewCNNo}
+            hideSearch
+          />
           
 
           {(["Finance", "Administrator"].includes(userRole)) && (
@@ -870,7 +939,7 @@ export default function CreditNoteTable({
             </button>
           </div>
         </div>
-      </div>
+      </div>      
     </section>
   );
 }

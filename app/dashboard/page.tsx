@@ -21,6 +21,7 @@ import type {
   MachineStatusSummary,
   RevenueTrendPoint,
 } from "@/lib/types";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 export default function DashboardPage() {
   const [kpis, setKpis] = useState<kpiSummery | null>(null);
@@ -66,13 +67,17 @@ export default function DashboardPage() {
     <div className="flex min-h-screen bg-surface font-display">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex flex-col flex-1 min-w-0">
         <Topbar />
 
-        <main className="flex-1 p-4 sm:p-6 space-y-6">
-
+        <main className="flex-1 p-4 space-y-6 sm:p-6">          
+          <LoadingOverlay 
+          show={loading}
+          delayMs={0}
+          title="Generating Dashboard"
+          message="Calculating revenue figures..." />
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="px-4 py-3 text-sm text-red-700 border border-red-200 rounded-lg bg-red-50">
               {error}
             </div>
           )}
@@ -82,7 +87,7 @@ export default function DashboardPage() {
           ) : (
             <>              
               {/* 1. KPI cards */}
-              <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 2xl:grid-cols-10 gap-4">
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6 2xl:grid-cols-10">
                 <div className="xl:col-span-2">
                   <KpiCard
                     label="Invoice Revenue (Without Tax)"
@@ -126,7 +131,7 @@ export default function DashboardPage() {
               </section>
 
               {/* 2 & 3(bars). Revenue chart + machine status */}
-              <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div className="xl:col-span-2">
                   <RevenueChart data={revenueTrend} />
                 </div>

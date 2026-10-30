@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { Toaster } from "sonner";
+import NextTopLoader from "nextjs-toploader";
 
 import "@/app/globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+        <NextTopLoader color="#F97316" height={3} showSpinner={false} shadow="0 0 10px #F97316,0 0 5px #F97316" />
         {children}
         <Toaster />
       </body>

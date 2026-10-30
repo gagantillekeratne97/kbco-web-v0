@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { Button } from "@/components/ui/button";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 export default function InvoicePage() {
+  const [loading, setLoading] = useState(true);   // true from the start: the page is loading on arrival  
   // --------------------------------------------------
   // Invoice Status
   // --------------------------------------------------
@@ -186,7 +188,7 @@ export default function InvoicePage() {
   // Load invoices from API
   // --------------------------------------------------
 
-  const loadInvoices = async (
+  const loadInvoices = async ( 
     page: number,
     searchQuery: string = query,
     searchFromDate: string = fromDate,
@@ -194,6 +196,7 @@ export default function InvoicePage() {
     searchStatus: string = status
   ) => {
     try {
+      setLoading(true);
       const companyId = getCompanyId();
 
       const data = await getInvoiceLists({
@@ -216,7 +219,7 @@ export default function InvoicePage() {
       setCurrentPage(data.page);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
-
+      setLoading(false);
     } catch (error) {
       console.error(
         "Something went wrong:",
@@ -315,23 +318,28 @@ export default function InvoicePage() {
   // --------------------------------------------------
 
   return (
-    <div className="flex min-h-screen bg-surface font-display">
-
+    <div className="flex min-h-screen bg-surface font-display">      
       {/* Sidebar */}
       <Sidebar />
 
-      <div className="flex flex-1 min-w-0 flex-col">
+      <div className="flex flex-col flex-1 min-w-0">
 
         {/* Topbar */}
         <Topbar title="Invoice List" />
 
         <div className="m-5 space-y-6">
+           <LoadingOverlay
+              show={loading}
+              delayMs={0}               // first load: show immediately, no empty flash
+              title="Generating report"
+              message="Calculating revenue figures..."
+            />
 
           {/* ================================================== */}
           {/* Filter Section */}
           {/* ================================================== */}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="p-5 bg-white border shadow-sm rounded-xl border-slate-200">
 
             {/* Search / Date Filters */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -396,9 +404,9 @@ export default function InvoicePage() {
             {/* Status Filter */}
             {/* ================================================== */}
 
-            <div className="mt-5 border-t border-slate-100 pt-5">
+            <div className="pt-5 mt-5 border-t border-slate-100">
 
-              <Label className="mb-3 block">
+              <Label className="block mb-3">
                 Invoice Status
               </Label>
 
@@ -444,7 +452,7 @@ export default function InvoicePage() {
             {/* Action Buttons */}
             {/* ================================================== */}
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 mt-5">
 
               {/* Clear */}
               <Button
@@ -463,7 +471,7 @@ export default function InvoicePage() {
                 disabled={isExporting}
                 className="gap-2"
               >
-                <Download className="h-4 w-4" />
+                <Download className="w-4 h-4" />
 
                 {isExporting
                   ? "Exporting..."
@@ -474,9 +482,9 @@ export default function InvoicePage() {
               <Button
                 type="button"
                 onClick={handleSearch}
-                className="gap-2 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700"
+                className="gap-2 text-white bg-indigo-600 shadow-sm hover:bg-indigo-700"
               >
-                <Search className="h-4 w-4" />
+                <Search className="w-4 h-4" />
 
                 Search
               </Button>
