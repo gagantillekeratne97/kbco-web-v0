@@ -37,13 +37,14 @@ export default function DashboardPage() {
         setLoading(true);
         setError("");
 
-        const [kpiData, invoicesData, statusData, trendData] = await Promise.all([
+        const [kpiData, invoicesData, statusData, trendData] = await Promise.all([          
           getKpiSummery(),
           getRecentInvoices(),
           getMachineStatus(),
           getRevenueTrend(),
         ]);
 
+        console.log(kpiData);
         setKpis(kpiData);
         setRecentInvoices(invoicesData);
         setMachineStatus(statusData);

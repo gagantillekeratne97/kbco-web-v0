@@ -24,6 +24,7 @@ import {
     User,
 } from "lucide-react";
 import { MachineRecord, MachineReturnRequest } from "@/lib/types";
+import MachineSearch from "./machine-return/MachineSearch";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -125,21 +126,22 @@ export default function MachineReturnWorkflow({
 
     /* ---------------- search ---------------- */
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setIsSearching(true);
-        setResults(null);
-        setMachine(null);
-        try {
-            const found = await onSearch(query.trim());
-            setResults(found);
-            if (found.length === 1) selectMachine(found[0]);
-        } catch (error) {
-            console.error(error);
-            toast.error("Search failed. Please try again.");
-        } finally {
-            setIsSearching(false);
-        }
+    const handleSearch = async (override?: string) => {
+    const term = (override ?? query).trim();
+    if (!term) return;
+    setIsSearching(true);
+    setResults(null);
+    setMachine(null);
+    try {
+        const found = await onSearch(term);
+        setResults(found);
+        if (found.length === 1) selectMachine(found[0]);
+    } catch (error) {
+        console.error(error);
+        toast.error("Search failed. Please try again.");
+    } finally {
+        setIsSearching(false);
+    }
     };
 
     const selectMachine = (m: MachineRecord) => {
@@ -286,27 +288,20 @@ export default function MachineReturnWorkflow({
                         <div className="space-y-5">
                             {/* Search */}
                             <div className="rounded-lg border border-slate-200 bg-white p-4">
-                                <label
-                                    htmlFor="machine-search"
-                                    className="text-sm font-medium text-slate-900"
-                                >
+                                <span className="text-sm font-medium text-slate-900">
                                     Search by P-number or serial number
-                                </label>
+                                </span>
                                 <div className="mt-2 flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            id="machine-search"
-                                            autoFocus
+                                    <div className="flex-1">
+                                        <MachineSearch
                                             value={query}
-                                            onChange={(e) => setQuery(e.target.value)}
-                                            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                            placeholder="e.g. P-10452 or C317R303474"
-                                            className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                            onChange={setQuery}
+                                            onSelect={(m) => handleSearch(m.serialNumber)}
+                                            onEnter={() => handleSearch()}
                                         />
                                     </div>
                                     <Button
-                                        onClick={handleSearch}
+                                        onClick={() => handleSearch()}
                                         disabled={isSearching || !query.trim()}
                                     >
                                         {isSearching ? (

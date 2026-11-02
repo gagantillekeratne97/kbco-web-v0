@@ -15,6 +15,9 @@ import type { Invoice } from "@/lib/types";
  * Fonts in the reference:
  *   - Courier New (bold labels 8pt, values 8.4pt)  -> jsPDF "courier"
  *   - Arial (title, notes, signature block)         -> jsPDF "helvetica"
+ *
+ * Credit notes also print a "Remarks" block (invoice.remarks) under the
+ * rate box. Regular invoices never print it.
  */
 
 export type DocumentVariant = "invoice" | "creditNote";
@@ -29,7 +32,13 @@ interface InvoicePDFProps {
 // they have to fit before the value column, so keep them about this long.
 const DOC_TEXT: Record<
   DocumentVariant,
-  { title: string; dateLabel: string; numberLabel: string; name: string; referenceNumber?: string; }
+  {
+    title: string;
+    dateLabel: string;
+    numberLabel: string;
+    name: string;
+    referenceNumber?: string;
+  }
 > = {
   invoice: {
     title: "TAX INVOICE",
@@ -42,7 +51,7 @@ const DOC_TEXT: Record<
     dateLabel: "Credit Note Date :",
     numberLabel: "Credit Note No :",
     referenceNumber: "Invoice Reference :",
-    name: "Credit Note",    
+    name: "Credit Note",
   },
 };
 
@@ -117,13 +126,13 @@ export function buildInvoicePDF(
 
   // ---- drawing helpers ----------------------------------------------------
 
-  const txt = (text: string, x: number, top: number, o: TextOpts = {}) => {
+  const txt = (value: string, x: number, top: number, o: TextOpts = {}) => {
     const { face = "courier", bold = false, size = 8.4, align = "left" } = o;
 
     doc.setFont(face, bold ? "bold" : "normal");
     doc.setFontSize(size);
     doc.setTextColor(0, 0, 0);
-    doc.text(text, x, top + size * BASE[face], { align });
+    doc.text(value, x, top + size * BASE[face], { align });
   };
 
   const wrap = (value: string, width: number, size = 8.4): string[] => {
@@ -163,7 +172,12 @@ export function buildInvoicePDF(
   // TITLE
   // (top ~84pt and bottom ~130pt are left clear for the company letterhead)
   // =========================================================================
-  txt(text.title, 312, 84.1, { face: "helvetica", bold: true, size: 8.8, align: "center" });
+  txt(text.title, 312, 84.1, {
+    face: "helvetica",
+    bold: true,
+    size: 8.8,
+    align: "center",
+  });
 
   // =========================================================================
   // HEADER FIELDS (two columns)
@@ -203,15 +217,14 @@ export function buildInvoicePDF(
   field("L", "Invoice Period :", 263.6, 263.0, invoice.invoicePeriod);
 
   // right column
-  // right column
-  field("R", text.numberLabel, 107.6, 107.0, invoice.invoiceNo); 
-  // credit notes only: show the original invoice, then push the rest of the column down
+  field("R", text.numberLabel, 107.6, 107.0, invoice.invoiceNo);
+
+  // credit notes only: show the original invoice, then push the column down
   if (text.referenceNumber) {
     field("R", text.referenceNumber, 125.6, 125.0, invoice.invoiceReference);
-    shift.R += 18; // one row (same pitch as the TIN row), keeps everything below from overlapping
+    shift.R += 18; // one row (same pitch as the TIN row) so nothing below overlaps
   }
-  field("R", "Purchaser's TIN :", 125.6, 125.0, purchaser.tin);
-  // ...the rest stays unchanged
+
   field("R", "Purchaser's TIN :", 125.6, 125.0, purchaser.tin);
   field("R", "Purchaser's Name :", 149.6, 150.9, purchaser.name, 2);
   field("R", "Address :", 173.6, 175.9, purchaser.address, 2);
@@ -250,7 +263,12 @@ export function buildInvoicePDF(
     const descLines = wrap(String(item.description ?? ""), 120);
     const locLines = wrap(String(item.location ?? ""), 190);
 
-    const lineCount = Math.max(serialLines.length, descLines.length, locLines.length, 1);
+    const lineCount = Math.max(
+      serialLines.length,
+      descLines.length,
+      locLines.length,
+      1
+    );
     const rowH = lineCount * LINE_H + 7.2;
 
     if (y + rowH > BOTTOM_LIMIT - 20) {
@@ -300,7 +318,13 @@ export function buildInvoicePDF(
   doc.setLineWidth(1);
   doc.rect(22.5, Y(350), 321, boxH);
 
-  const underlined = (label: string, x: number, w: number, top: number, lineY: number) => {
+  const underlined = (
+    label: string,
+    x: number,
+    w: number,
+    top: number,
+    lineY: number
+  ) => {
     txt(label, x, top, { bold: true, size: 7.9 });
     doc.setFillColor(0, 0, 0);
     doc.rect(x, lineY, w, 0.8, "F");
@@ -320,6 +344,30 @@ export function buildInvoicePDF(
     txt(fixed2(row.amount), 264, Y(376.9) + rowShift);
   });
 
+  // ---- remarks (credit notes only) ---------------------------------------
+  // Sits under the rate box on the left. It is clipped to the free space above
+  // the payment notes, so long text can never overlap them.
+    const remarks = (invoice.remarks ?? "").trim();
+
+  if (variant === "creditNote") {
+    const remarksTop = Y(350) + boxH + 14;
+    const remarksBottom = Y(508);
+    const maxLines = Math.max(
+      1,
+      Math.floor((remarksBottom - remarksTop - 12) / LINE_H)
+    );
+
+    txt("Remarks :", 24, remarksTop, { bold: true, size: 7.9 });
+
+    const lines = (remarks || "-").split(/\r?\n/).flatMap((p) => wrap(p, 318));
+    const shown = lines.slice(0, maxLines);
+
+    if (lines.length > maxLines) {
+      shown[maxLines - 1] = shown[maxLines - 1].slice(0, -3) + "...";
+    }
+
+    shown.forEach((line, i) => txt(line, 24, remarksTop + 12 + i * LINE_H));
+  }
   // ---- totals -------------------------------------------------------------
   const labelRight = 492.4;
   const valueRight = 582.1;
@@ -328,20 +376,60 @@ export function buildInvoicePDF(
   // values 8.4 to 9.4), so the value's top is shifted to keep them on one line.
   const LABEL_SIZE = 7.9;
 
-  const totals: { label: string; value: string; labelTop: number; size: number; bold?: boolean }[] = [
-    { label: "Total Count of Copies", value: String(summary.totalCountOfCopies ?? 0), labelTop: 365.4, size: 8.4 },
-    { label: "Total Value of Supply:", value: money(summary.totalValueOfSupply), labelTop: 383.4, size: 9.4 },
-    { label: "Discount", value: money(summary.discount), labelTop: 401.4, size: 9.4 },
+  const totals: {
+    label: string;
+    value: string;
+    labelTop: number;
+    size: number;
+    bold?: boolean;
+  }[] = [
+    {
+      label: "Total Count of Copies",
+      value: String(summary.totalCountOfCopies ?? 0),
+      labelTop: 365.4,
+      size: 8.4,
+    },
+    {
+      label: "Total Value of Supply:",
+      value: money(summary.totalValueOfSupply),
+      labelTop: 383.4,
+      size: 9.4,
+    },
+    {
+      label: "Discount",
+      value: money(summary.discount),
+      labelTop: 401.4,
+      size: 9.4,
+    },
     { label: "SSCL", value: money(summary.sscl), labelTop: 419.4, size: 9.4 },
-    { label: "Tax Amount", value: money(summary.taxAmount), labelTop: 437.4, size: 9.4 },
-    { label: "Total Amount Value", value: money(summary.totalAmountValue), labelTop: 461.4, size: 8.8, bold: true },
+    {
+      label: "Tax Amount",
+      value: money(summary.taxAmount),
+      labelTop: 437.4,
+      size: 9.4,
+    },
+    {
+      label: "Total Amount Value",
+      value: money(summary.totalAmountValue),
+      labelTop: 461.4,
+      size: 8.8,
+      bold: true,
+    },
   ];
 
   totals.forEach((t) => {
     const valueTop = t.labelTop + (LABEL_SIZE - t.size) * BASE.courier;
 
-    txt(t.label, labelRight, Y(t.labelTop), { bold: true, size: LABEL_SIZE, align: "right" });
-    txt(t.value, valueRight, Y(valueTop), { bold: t.bold, size: t.size, align: "right" });
+    txt(t.label, labelRight, Y(t.labelTop), {
+      bold: true,
+      size: LABEL_SIZE,
+      align: "right",
+    });
+    txt(t.value, valueRight, Y(valueTop), {
+      bold: t.bold,
+      size: t.size,
+      align: "right",
+    });
   });
 
   rule(504, 582, Y(458), 1); // above the final amount
@@ -372,21 +460,40 @@ export function buildInvoicePDF(
   });
 
   const notes: [string, number][] = [
-    ["(2). Please indicate invoice number with payment and obtain an official receipt .", 526.8],
+    [
+      "(2). Please indicate invoice number with payment and obtain an official receipt .",
+      526.8,
+    ],
     ["(3). Interest at 2% per month will be charged on OVERDUE ACCOUNTS.", 536.1],
-    ["(4). In order to maintain uninterrupted services, please ensure prompt settlement of dues.", 545.3],
+    [
+      "(4). In order to maintain uninterrupted services, please ensure prompt settlement of dues.",
+      545.3,
+    ],
   ];
 
-  notes.forEach(([text, top]) =>
-    txt(text, 21.2, Y(top), { face: "helvetica", size: NOTE_SIZE })
+  notes.forEach(([note, top]) =>
+    txt(note, 21.2, Y(top), { face: "helvetica", size: NOTE_SIZE })
   );
 
   // ---- receipt confirmation + signature block ------------------------------
   const sig = { face: "helvetica" as const, size: 8.1 };
 
-  txt("Received the invoice", 24, Y(569.6), { face: "helvetica", bold: true, size: 7.8 });
-  txt("Details checked and found correct.", 24, Y(580.4), { face: "helvetica", bold: true, size: 7.8 });
-  txt(supplier.name, RIGHT, Y(581.3), { face: "helvetica", bold: true, size: 6.9, align: "right" });
+  txt("Received the invoice", 24, Y(569.6), {
+    face: "helvetica",
+    bold: true,
+    size: 7.8,
+  });
+  txt("Details checked and found correct.", 24, Y(580.4), {
+    face: "helvetica",
+    bold: true,
+    size: 7.8,
+  });
+  txt(supplier.name, RIGHT, Y(581.3), {
+    face: "helvetica",
+    bold: true,
+    size: 6.9,
+    align: "right",
+  });
 
   // The reference staggers labels and dotted lines between the two columns;
   // the offsets below are copied as-is.
@@ -407,7 +514,11 @@ export function buildInvoicePDF(
   dotted(90, 179.8, Y(654.4));
 
   dotted(462, 583.8, Y(626.4));
-  txt("Authorized Signatory", 582, Y(640.9), { face: "helvetica", size: 7.2, align: "right" });
+  txt("Authorized Signatory", 582, Y(640.9), {
+    face: "helvetica",
+    size: 7.2,
+    align: "right",
+  });
 
   // =========================================================================
   // "Page n of N" (sits just above the item table header)

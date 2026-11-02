@@ -210,9 +210,9 @@ export default function MachineReturnModal({
               </dl>
             </section>
           )}
-
-          <div className="space-y-4">
-            <Field label="FAR" error={errors.far} htmlFor="far">
+          
+          <div className="space-y-4">          
+             <Field label="FAR" error={errors.far} htmlFor="far">
               <input
                 id="far"
                 ref={farRef}
@@ -224,64 +224,46 @@ export default function MachineReturnModal({
               />
             </Field>
 
-            {/* Asset cost + written down cost, side by side */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field
-                label="Asset cost"
-                error={errors.assetCost}
-                htmlFor="assetCost"
-              >
-                <MoneyInput
-                  id="assetCost"
-                  value={form.assetCost}
-                  onChange={set("assetCost")}
-                  className={inputClass(errors.assetCost)}
-                />
-              </Field>
+            <Field label="Asset Cost / Book Value" error={errors.assetCost} htmlFor="assetCost">
+              <MoneyInput
+                id="assetCost"
+                value={form.assetCost}
+                onChange={set("assetCost")}
+                className={inputClass(errors.assetCost)}
+              />
+            </Field>
 
-              <Field
-                label="Written down cost"
-                error={errors.writtenDownCost}
-                htmlFor="writtenDownCost"
-              >
-                <MoneyInput
-                  id="writtenDownCost"
-                  value={form.writtenDownCost}
-                  onChange={set("writtenDownCost")}
-                  className={inputClass(errors.writtenDownCost)}
-                />
-              </Field>
-            </div>
+            <Field label="Written Down Cost" error={errors.writtenDownCost} htmlFor="writtenDownCost">
+              <MoneyInput
+                id="writtenDownCost"
+                value={form.writtenDownCost}
+                onChange={set("writtenDownCost")}
+                className={inputClass(errors.writtenDownCost)}
+              />
+            </Field>
 
-            {/* Debtors amount + date and time, side by side */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field
-                label="Debtors amount"
-                error={errors.debtorsAmount}
-                htmlFor="debtorsAmount"
-              >
-                <MoneyInput
-                  id="debtorsAmount"
-                  value={form.debtorsAmount}
-                  onChange={set("debtorsAmount")}
-                  className={inputClass(errors.debtorsAmount)}
-                />
-              </Field>
+            <Field label="Debtors Amount" error={errors.debtorsAmount} htmlFor="debtorsAmount">
+              <MoneyInput
+                id="debtorsAmount"
+                value={form.debtorsAmount}
+                onChange={set("debtorsAmount")}
+                className={inputClass(errors.debtorsAmount)}
+              />
+            </Field>
 
-              <Field
-                label="Debtors date and time"
-                error={errors.debtorsDateTime}
-                htmlFor="debtorsDateTime"
-              >
-                <input
-                  id="debtorsDateTime"
-                  type="datetime-local"
-                  value={form.debtorsDateTime}
-                  onChange={set("debtorsDateTime")}
-                  className={inputClass(errors.debtorsDateTime)}
-                />
-              </Field>
-            </div>
+            <Field
+              label="Debtors date and time"
+              error={errors.debtorsDateTime}
+              htmlFor="debtorsDateTime"
+            >
+              <input
+                id="debtorsDateTime"
+                type="datetime-local"
+                value={form.debtorsDateTime}
+                onChange={set("debtorsDateTime")}
+                className={inputClass(errors.debtorsDateTime)}
+              />
+            </Field>
           </div>
         </div>
 
@@ -304,8 +286,7 @@ export default function MachineReturnModal({
           </button>
         </div>
       </div>
-    </div>
-  );
+    </div>);
 }
 
 interface DetailProps {

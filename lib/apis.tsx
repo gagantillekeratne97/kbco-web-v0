@@ -1,6 +1,6 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto} from "./types";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto, machineSearchResult} from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 import { promises } from "dns";
 
@@ -51,6 +51,48 @@ function getUserRole(): string {
   }
 
   return userRole;
+}
+
+export async function rejectCreditNoteFinance(invoiceNumber: string, reason: string) {
+  const userRole = getUserRole();
+  const userName = getUserName();
+  const response = await fetch(`${API_BASE}creditnote/finance-rejected-cr`, {
+    method: "POST", 
+    headers: {
+      "Content-Type": "application/json"
+    }, 
+    body: JSON.stringify({
+      invoiceNumber: invoiceNumber,
+      appBy: userName,
+      reason: reason,
+      userRole: userRole
+    })
+  });
+
+  if (!response.ok) { 
+    throw new Error("Something went wrong.");
+  }
+}
+
+export async function rejectCreditNote(invoiceNumber: string, reason: string) { 
+  const userRole = getUserRole();
+  const userName = getUserName();
+  const response = await fetch(`${API_BASE}creditnote/hod-rejected-cr`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      invoiceNumber: invoiceNumber,
+      appBy: userName,
+      reason: reason,
+      userRole: userRole
+    })
+  });
+
+  if (!response.ok) { 
+    throw new Error("Something went wrong.");
+  }
 }
 
 export async function approveCreditNoteFinance(invoiceNumber: string, reason: string) 
@@ -303,6 +345,7 @@ export async function loginUser(payload: LoginRequestModel) : Promise<LoginRespo
 }
 
 export async function getKpiSummery(): Promise<kpiSummery> {
+  debugger;
   const companyId = getCompanyId();
 
   const response = await fetch(
@@ -319,6 +362,7 @@ export async function getKpiSummery(): Promise<kpiSummery> {
   }
 
   const data = await response.json();
+  console.log(data);
 
   return data as kpiSummery;
 }
@@ -453,6 +497,27 @@ export const searchCustomers = async (query: string) => {
 }
 
 // search machines by serial number or pnumber 
+
+export async function suggestMachines(
+    term: string,
+    signal?: AbortSignal
+): Promise<machineSearchResult[]> {
+  debugger;
+    const companyId =
+        localStorage.getItem("companyID") ||
+        sessionStorage.getItem("companyID") ||
+        "";
+
+    const url =
+        `${API_BASE}machinemovement/suggestions` +
+        `?term=${encodeURIComponent(term)}&companyId=${encodeURIComponent(companyId)}`;
+
+    const res = await fetch(url, { signal });
+    console.log(res);
+    if (!res.ok) 
+      throw new Error(`Machine suggestions failed (${res.status})`);
+    return res.json();
+}
 
 export const searchMachines = async (query: string) => { 
   const companyID = getCompanyId(); 

@@ -190,6 +190,7 @@ export interface Invoice {
   invoicePeriod: string;
   poNo?: string;
   invoiceReference: string; 
+  remarks?: string;
 
   supplier: InvoiceParty;
   purchaser: InvoiceParty;
@@ -489,6 +490,12 @@ export type MachineStatusMetric = {
   count: number;
   total: number;
 };
+
+export type machineSearchResult = { 
+  serialNumber: string;
+  pnumber: string;
+  customerName: string;
+}
 
 export type CreditNote = { 
   cnNo: string; 

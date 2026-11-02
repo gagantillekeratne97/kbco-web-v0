@@ -31,7 +31,7 @@ import {
   ReceiptEuro
 } from "lucide-react";
 import Link from "next/link";
-import { approveCreditNoteFinance, approveCreditNoteHOD, getInvoiceCustomerInformation, getInvoiceLayoutDetails } from "@/lib/apis";
+import { approveCreditNoteFinance, approveCreditNoteHOD, getInvoiceCustomerInformation, getInvoiceLayoutDetails, rejectCreditNote, rejectCreditNoteFinance } from "@/lib/apis";
 import CreditNoteModal from "../credit-note-modal/creditNoteModal";
 import InvoicePDF from "../invoiceGenerate/InvoicePDF";
 import InvoiceViewerModal from "../InvoiceViewer/invoiceViewerModal";
@@ -835,6 +835,9 @@ export default function CreditNoteTable({
                   onApprove={async (invoiceNumber, comment) => {
                       await approveCreditNoteHOD(invoiceNumber, comment);
                   }}
+                  onReject={async (invoiceNumber, comment) => {
+                      await rejectCreditNote(invoiceNumber, comment);
+                  }}
               />
           )}
 
@@ -856,6 +859,9 @@ export default function CreditNoteTable({
                   invoiceNumber={selectedCNNo}
                   onApprove={async (invoiceNumber, comment) => {
                       await approveCreditNoteFinance(invoiceNumber, comment);
+                  }}
+                  onReject={async (invoiceNumber, comment) => {
+                      await rejectCreditNoteFinance(invoiceNumber, comment);
                   }}
               />
           )}
