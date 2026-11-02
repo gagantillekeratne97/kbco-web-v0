@@ -852,7 +852,7 @@ export default function CreditNoteTable({
           />
           
 
-          {(["Finance", "Administrator"].includes(userRole)) && (
+          {(["Accounts", "Administrator", "Finance"].includes(userRole)) && (
               <CreditNoteModal
                   isOpen={isModalOpen}
                   onClose={() => setIsModalOpen(false)}
