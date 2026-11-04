@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [  
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Testing", icon: Folder, href: "/testing-page" }, 
+  // { label: "Testing", icon: Folder, href: "/testing-page" }, 
   { label: "Invoices", icon: FileText, href: "/invoices" },  
   { label: "Pending Invoices", icon: Receipt, href: "/pending-invoice-report" },  
   { label: "Cancelled Invoices", icon: FileText, href: "/cancelled-invoice" },
