@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Download, Search } from "lucide-react";
-import { getInternalConsumption } from "@/lib/apis";
+import {getInternalConsumption, getInternalConsumptionExport} from "@/lib/apis";
 import { InternalConsumptionDto } from "@/lib/types";
 
 type Filters = { query: string; fromDate: string; toDate: string };
@@ -51,6 +51,18 @@ const formatMoney = (value?: number | string | null) => {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
+};
+
+const toInputDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const getCurrentMonthFilters = (): Filters => {
+  const now = new Date();
+  return {
+    query: "",
+    fromDate: toInputDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    toDate: toInputDate(now),
+  };
 };
 
 // isBackup may arrive as boolean, 0/1 or "Y"/"N". Booleans render nothing in
@@ -140,12 +152,17 @@ export default function InternalPage() {
   // them inside an effect, never during render.
   useEffect(() => {
     const id =
-      localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
+        localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
 
     if (!id) {
       setError("Company ID not found. Please log in again.");
       return;
     }
+
+    const defaults = getCurrentMonthFilters();
+    setFromDate(defaults.fromDate);
+    setToDate(defaults.toDate);
+    setAppliedFilters(defaults);
     setComId(id);
   }, []);
 
@@ -204,11 +221,12 @@ export default function InternalPage() {
   };
 
   const handleClear = () => {
+    const defaults = getCurrentMonthFilters();
     setQuery("");
-    setFromDate("");
-    setToDate("");
-    setAppliedFilters(EMPTY_FILTERS);
-    fetchInternalConsumption(1, EMPTY_FILTERS); // refetch with cleared values
+    setFromDate(defaults.fromDate);
+    setToDate(defaults.toDate);
+    setAppliedFilters(defaults);
+    fetchInternalConsumption(1, defaults);
   };
 
   const handlePageChange = (page: number) => {
@@ -223,28 +241,11 @@ export default function InternalPage() {
     try {
       setExporting(true);
       setError("");
+      setExportProgress("Preparing export...");
 
       const { query: q, fromDate: from, toDate: to } = appliedFilters;
 
-      const all: InternalConsumptionDto[] = [];
-      let page = 1;
-      let pages = 1;
-
-      do {
-        const res = await getInternalConsumption(
-          comId,
-          from,
-          to,
-          q,
-          page,
-          EXPORT_PAGE_SIZE
-        );
-
-        all.push(...(res.data ?? []));
-        pages = res.pagination.totalPages;
-        setExportProgress(`${all.length} / ${res.pagination.totalRecords}`);
-        page++;
-      } while (page <= pages);
+      const all = await getInternalConsumptionExport(comId, from, to, q);
 
       if (all.length === 0) {
         setError("No records to export.");

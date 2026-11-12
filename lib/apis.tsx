@@ -1,6 +1,42 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto, machineSearchResult, MachineReturnApprovalFinanceRequest} from "./types";
+import {
+  MachineStatusSummary,
+  RecentInvoices,
+  kpiSummery,
+  InventoryItem,
+  InvoiceRequestQuery,
+  PaginatedResult,
+  InvoiceLists,
+  CreditNote,
+  LoginRequestModel,
+  LoginResponseModel,
+  RevenueTrendPoint,
+  InvoiceRevenueLists,
+  ExcelResponse,
+  PartsModel,
+  PendingInvoiceLists,
+  creditNoteInfo,
+  InternalConsumptionResponse,
+  CreateCreditNoteRequest,
+  creditNoteApiResponse,
+  MachineListResponse,
+  MachineList,
+  CreatePartialCreditRequestPayload,
+  Invoice,
+  SaveMeterReadingPayload,
+  InvoiceRequestParams,
+  InvoicePreview,
+  ProcessInvoiceResponse,
+  MachineRecord,
+  MachineReturnRequest,
+  MachineReturnResponse,
+  machineReturnReqDto,
+  machineReturnResponseDto,
+  machineSearchResult,
+  MachineReturnApprovalFinanceRequest,
+  InternalConsumptionDto
+} from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 import { promises } from "dns";
 import { hodApprovalData } from "@/components/machine-return/MachineReturnHOD";
@@ -268,24 +304,52 @@ if (query) params.set("query", query);
   return response.json();
 }
 
-// Internal Consumption 
+export async function getInternalConsumptionExport(
+    comid: string,
+    startDate: string,
+    endDate: string,
+    search: string
+): Promise<InternalConsumptionDto[]> {
+    const params = new URLSearchParams();
+    params.append("comId", comid);
+    params.append("startDate", startDate);
+    params.append("endDate", endDate);
+
+    if (search.trim()) {
+      params.append("search", search.trim());
+    }
+
+    const response = await fetch(
+        `${API_BASE}reports/internal-consumption-lists/export?${params.toString()}`,
+        { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to export internal consumption records.");
+    }
+
+    const json = await response.json();
+    return json.data ?? [];
+}
+
+// Internal Consumption
 export async function getInternalConsumption(
   comid: string,
-  startDate: string, 
+  startDate: string,
   endDate: string,
-  search: string, 
-  page: number, 
-  pageSize: number    
-):Promise<InternalConsumptionResponse> 
-{ 
-  const params = new URLSearchParams();   
-  params.append("comId", comid); 
-  params.append("startDate", startDate); 
-  params.append("endDate", endDate);   
-  params.append("page", page.toString()); 
-  params.append("pageSize", pageSize.toString()); 
-  
-  if (search.trim()) { 
+  search: string,
+  page: number,
+  pageSize: number
+):Promise<InternalConsumptionResponse>
+{
+  const params = new URLSearchParams();
+  params.append("comId", comid);
+  params.append("startDate", startDate);
+  params.append("endDate", endDate);
+  params.append("page", page.toString());
+  params.append("pageSize", pageSize.toString());
+
+  if (search.trim()) {
     params.append("search", search.trim());
   }
 
@@ -295,7 +359,7 @@ export async function getInternalConsumption(
 
   if (!response.ok) {
     throw new Error("Failed to load internal consumption records.");
-  }  
+  }
 
   return await response.json();
 }
