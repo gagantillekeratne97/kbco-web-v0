@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { InvoiceLists } from "@/lib/types";
-import { getInvoiceLists } from "@/lib/apis";
+import {getInvoiceLists, getInvoiceListsExport} from "@/lib/apis";
 import { Download, Search } from "lucide-react";
 import InvoiceTable from "@/components/invoice/invoiceTable";
 import { Input } from "@/components/ui/input";
@@ -98,21 +98,11 @@ export default function InvoicePage() {
     try {
       // Fetch all matching records.
       // Pagination is ignored for export.
-      const data = await getInvoiceLists({
+      debugger;
+      const rows = await getInvoiceListsExport({
         query,
-        fromDate,
-        toDate,
-        page: 1,
-        pageSize: totalCount || 100000,
-
-        // IMPORTANT:
-        // Export currently selected status.
-        status,
-
-        companyId: getCompanyId(),
+        companyId: getCompanyId(), status, fromDate ,toDate
       });
-
-      const rows = data.items;
 
       if (!rows || rows.length === 0) {
         alert("No records to export.");

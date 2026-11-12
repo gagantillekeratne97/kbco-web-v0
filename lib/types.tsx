@@ -491,6 +491,24 @@ export type MachineStatusMetric = {
   total: number;
 };
 
+export interface MachineReturnApprovalRequest {
+    machineReturnID: string;
+    approverID: string;
+    status: string;
+    comment: string;
+}
+
+export interface MachineReturnApprovalFinanceRequest {
+    companyId: string;
+    farValue: number;
+    assetCost: number;
+    bookValue: number;
+    writtenDownCost: number;
+    debtorsAmount: number;
+    debtorsDateTime: string;
+    approverDetails: MachineReturnApprovalRequest;
+}
+
 export type machineSearchResult = { 
   serialNumber: string;
   pnumber: string;

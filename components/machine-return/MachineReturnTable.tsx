@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ElementType } from "react";
-import type { machineReturnResponseDto } from "@/lib/types";
+import type {
+  MachineReturnApprovalFinanceRequest,
+  machineReturnResponseDto,
+} from "@/lib/types";
 
 import {
   Table,
@@ -27,11 +30,18 @@ import {
   CircleHelp,
   Eye,
   PrinterIcon,
-  ReceiptEuro,
+  ClipboardCheck,
 } from "lucide-react";
 
-import type { MachineReturnDetails, ReturnApprovalData } from "./MachineReturnModal";
-import MachineReturnModal from "./MachineReturnModal";
+import MachineReturnModal, {
+  type MachineReturnDetails,
+} from "./MachineReturnModal";
+import MachineReturnHOD, { type hodApprovalData } from "./MachineReturnHOD";
+
+import {
+  approveMachineReturnFinance,
+  approveMachineReturnHod,
+} from "@/lib/apis";
 
 /* =========================================================
    STATUS STYLES
@@ -44,9 +54,14 @@ type StatusStyle = {
 };
 
 const machineStatusStyles = {
-  PENDING: {
+  PENDING_HOD: {
     badge: "bg-amber-50 text-amber-700 ring-amber-600/20",
     dot: "bg-amber-500",
+    icon: Clock3,
+  },
+  PENDING_FINANCE: {
+    badge: "bg-violet-50 text-violet-700 ring-violet-600/20",
+    dot: "bg-violet-500",
     icon: Clock3,
   },
   COLLECTED: {
@@ -75,9 +90,19 @@ const defaultStatusStyle: StatusStyle = {
 const getStatusStyle = (status?: string): StatusStyle => {
   if (!status) return defaultStatusStyle;
 
-  const normalized = status.trim().toLowerCase();
+  // "Pending HOD", "pending-hod" and "PENDING_HOD" all become "pending_hod"
+  const normalized = status.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
-  /* Check rejected/failed first so they never match another category */
+  // Pending checks come first so "pending_finance_approval" is not
+  // mistaken for an approved status.
+  if (normalized.includes("pending_finance")) {
+    return machineStatusStyles.PENDING_FINANCE;
+  }
+
+  if (normalized.includes("pending_hod")) {
+    return machineStatusStyles.PENDING_HOD;
+  }
+
   if (
     normalized.includes("rejected") ||
     normalized.includes("failed") ||
@@ -96,10 +121,6 @@ const getStatusStyle = (status?: string): StatusStyle => {
 
   if (normalized.includes("collect")) {
     return machineStatusStyles.COLLECTED;
-  }
-
-  if (normalized.includes("pending")) {
-    return machineStatusStyles.PENDING;
   }
 
   return defaultStatusStyle;
@@ -123,6 +144,7 @@ const formatDate = (value?: string) => {
   if (!value) return "—";
 
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "—";
 
   return date.toLocaleDateString("en-GB", {
@@ -132,7 +154,6 @@ const formatDate = (value?: string) => {
   });
 };
 
-/* Shows a faint dash for empty text values */
 const orDash = (value?: string | null) =>
   value && value.trim() !== "" ? (
     value
@@ -144,7 +165,7 @@ const orDash = (value?: string | null) =>
    PROPS
 ========================================================= */
 
-interface machineReturnTableProps {
+interface MachineReturnTableProps {
   data: machineReturnResponseDto[];
   currentPage: number;
   totalPages: number;
@@ -159,31 +180,40 @@ interface machineReturnTableProps {
     toDate: string;
     status: string;
   }) => void;
+
+  /** Called after a successful approve/reject so the parent can reload the list. */
+  onRefresh?: () => void;
 }
 
 /* =========================================================
    LAYOUT CLASSES
 ========================================================= */
 
-const COLUMN_COUNT = 13; // must match the number of <TableHead> items
+const COLUMN_COUNT = 13;
+
+/** Roles that use the HOD approval modal. Everyone else gets the finance modal. */
+const HOD_ROLES = ["P2P", "Doculine"];
 
 const cellBase = "px-4 py-3 text-sm text-slate-600 whitespace-nowrap";
+
 const cellStrong =
   "px-4 py-3 text-sm font-medium text-slate-900 whitespace-nowrap";
 
 const headBase =
   "h-11 px-4 text-xs font-semibold tracking-wide text-slate-600 whitespace-nowrap";
 
-/* Sticky (frozen) left columns: "#", "Print / View" and "Action".
-   Offsets: # = 0, Print/View = 56px, Action = 56 + 190 = 246px */
 const stickyNumHead = `${headBase} sticky left-0 z-[2] w-[56px] min-w-[56px] bg-slate-50`;
+
 const stickyPrintHead = `${headBase} sticky left-[56px] z-[2] w-[190px] min-w-[190px] bg-slate-50 text-center`;
+
 const stickyActionHead = `${headBase} sticky left-[246px] z-[2] min-w-[170px] bg-slate-50 text-center shadow-[1px_0_0_#e2e8f0]`;
 
 const stickyNumCell =
   "sticky left-0 z-[1] w-[56px] min-w-[56px] bg-white px-4 py-3 text-sm tabular-nums text-slate-400 transition-colors group-hover:bg-slate-50";
+
 const stickyPrintCell =
   "sticky left-[56px] z-[1] w-[190px] min-w-[190px] bg-white px-4 py-3 text-center transition-colors group-hover:bg-slate-50";
+
 const stickyActionCell =
   "sticky left-[246px] z-[1] min-w-[170px] bg-white px-4 py-3 text-center transition-colors group-hover:bg-slate-50 shadow-[1px_0_0_#e2e8f0]";
 
@@ -209,38 +239,48 @@ export default function MachineReturnTable({
   pageSize = 10,
   isLoading = false,
   onSearch,
-}: machineReturnTableProps) {
+  onRefresh,
+}: MachineReturnTableProps) {
+  /* =======================================================
+     SEARCH STATE
+  ======================================================= */
+
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [status, setStatus] = useState("");
-  const [userRole, setUserRole] = useState("");
 
-  const [isMachineReturnModalOpen, setMachineReturnModal] = useState(false);
+  /* =======================================================
+     USER / ROLE STATE
+  ======================================================= */
+
+  const [userRole, setUserRole] = useState("");
+  const [userName, setUserName] = useState("");
+  const [companyId, setCompanyId] = useState("");
+
+  // Worked out from the role, so it can never get out of sync with it
+  const isHodRole = HOD_ROLES.includes(userRole);
+
+  /* =======================================================
+     MODAL STATE
+     A modal is open exactly when a row is selected.
+  ======================================================= */
+
   const [selectedReturn, setSelectedReturn] =
     useState<machineReturnResponseDto | null>(null);
 
   /* =======================================================
-     USER ROLE / COMPANY
+     LOAD USER INFORMATION
   ======================================================= */
 
   useEffect(() => {
-    const role =
-      localStorage.getItem("userRole") ||
-      sessionStorage.getItem("userRole") ||
-      "";
-    setUserRole(role);
+    const read = (key: string) =>
+      localStorage.getItem(key) || sessionStorage.getItem(key) || "";
+
+    setUserRole(read("userRole"));
+    setUserName(read("userName"));
+    setCompanyId(read("companyID"));
   }, []);
-
-  const getCompanyId = (): string => {
-    const companyId =
-      localStorage.getItem("companyID") || sessionStorage.getItem("companyID");
-    if (!companyId) {
-      throw new Error("Company ID Not Found.");
-    }
-
-    return companyId;
-  };
 
   /* =======================================================
      SEARCH / CLEAR
@@ -279,43 +319,65 @@ export default function MachineReturnTable({
 
   const openApprovalModal = (row: machineReturnResponseDto) => {
     setSelectedReturn(row);
-    setMachineReturnModal(true);
   };
 
   const closeApprovalModal = () => {
-    setMachineReturnModal(false);
     setSelectedReturn(null);
   };
 
-  const submitDecision = async (
+  /* =======================================================
+     HOD APPROVAL API
+  ======================================================= */
+
+  const submitHodDecision = async (
     decision: "approve" | "reject",
-    formData: ReturnApprovalData
+    formData: hodApprovalData
   ) => {
     if (!selectedReturn) return;
 
     try {
-      const res = await fetch("/api/machine-returns/decision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          returnId: selectedReturn.returnId, // in the body, because it contains "/"
-          companyId: getCompanyId(),
-          decision, // "approve" | "reject"
-          ...formData, // far, assetCost, debtorsAmount
-        }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
+      await approveMachineReturnHod(formData, decision);
 
       closeApprovalModal();
+      onRefresh?.();
 
-      // reload the list with the current filters
-      onSearch?.({ query: query.trim(), fromDate, toDate, status });
-    } catch (err) {
-      console.error(err);
-      alert("Could not save the decision. Please try again."); // swap for your toast
+      alert(
+        `Machine return HOD ${decision === "approve" ? "approval" : "rejection"} completed successfully.`
+      );
+    } catch (error) {
+      console.error("HOD approval failed:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "HOD approval failed. Please try again."
+      );
     }
   };
+
+  /* =======================================================
+     FINANCE APPROVAL API
+     Errors are NOT caught here on purpose: the finance modal
+     catches them and shows the message inside the dialog.
+  ======================================================= */
+
+  const submitFinanceDecision = async (
+    formData: MachineReturnApprovalFinanceRequest
+  ) => {
+    if (!selectedReturn) return;
+
+    // Approve or reject is already inside formData.approverDetails.status
+    await approveMachineReturnFinance(formData);
+
+    closeApprovalModal();
+    onRefresh?.();
+
+    alert("Machine return finance decision completed successfully.");
+  };
+
+  /* =======================================================
+     SELECTED RETURN DETAILS
+  ======================================================= */
 
   const details: MachineReturnDetails | undefined = selectedReturn
     ? {
@@ -325,7 +387,7 @@ export default function MachineReturnTable({
         contactPerson: selectedReturn.contactPerson ?? "",
         model: selectedReturn.model ?? "",
         serialNo: selectedReturn.serialNumber,
-        noOfMachines: selectedReturn.noOfMachines ?? "",
+        noOfMachines: String(selectedReturn.noOfMachines ?? ""),
         invoiceNo: selectedReturn.invoiceNumber,
         location: selectedReturn.location ?? "",
         meterReading: selectedReturn.meterReading ?? "",
@@ -337,10 +399,6 @@ export default function MachineReturnTable({
   /* =======================================================
      ROW HELPERS
   ======================================================= */
-
-  const handleRowClick = (serialNumber: string) => {
-    console.log("Row clicked for serial number:", serialNumber);
-  };
 
   const getRowNumber = (index: number) =>
     (currentPage - 1) * pageSize + index + 1;
@@ -366,6 +424,7 @@ export default function MachineReturnTable({
             >
               Date From
             </label>
+
             <input
               id="fromDate"
               type="date"
@@ -384,6 +443,7 @@ export default function MachineReturnTable({
             >
               Date To
             </label>
+
             <input
               id="toDate"
               type="date"
@@ -402,6 +462,7 @@ export default function MachineReturnTable({
             >
               Status
             </label>
+
             <select
               id="statusFilter"
               value={status}
@@ -409,6 +470,7 @@ export default function MachineReturnTable({
               className={inputBase}
             >
               <option value="">All statuses</option>
+
               {Object.keys(machineStatusStyles).map((key) => (
                 <option key={key} value={key}>
                   {formatStatusLabel(key)}
@@ -433,6 +495,7 @@ export default function MachineReturnTable({
                   size={17}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
+
                 <input
                   id="machineReturnSearch"
                   type="text"
@@ -482,6 +545,7 @@ export default function MachineReturnTable({
             <h2 className="text-base font-semibold text-slate-900">
               Machine Return Report
             </h2>
+
             <p className="text-sm text-slate-500">
               {totalCount.toLocaleString()} record
               {totalCount !== 1 ? "s" : ""}
@@ -519,7 +583,7 @@ export default function MachineReturnTable({
 
             <TableBody>
               {isLoading ? (
-                /* ---------- LOADING ---------- */
+                /* LOADING */
 
                 Array.from({ length: 8 }).map((_, index) => (
                   <TableRow key={index} className="border-b border-slate-100">
@@ -533,17 +597,22 @@ export default function MachineReturnTable({
                   </TableRow>
                 ))
               ) : data.length === 0 ? (
-                /* ---------- EMPTY STATE ---------- */
+                /* EMPTY STATE */
 
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={COLUMN_COUNT} className="h-64 text-center">
+                  <TableCell
+                    colSpan={COLUMN_COUNT}
+                    className="h-64 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                         <FileX2 size={24} className="text-slate-400" />
                       </div>
+
                       <p className="text-sm font-medium text-slate-900">
                         No machine returns found
                       </p>
+
                       <p className="mt-1 text-sm text-slate-500">
                         Try changing your search or date range.
                       </p>
@@ -551,7 +620,7 @@ export default function MachineReturnTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                /* ---------- DATA ---------- */
+                /* DATA */
 
                 data.map((row, index) => {
                   const statusStyle = getStatusStyle(row.status);
@@ -560,8 +629,7 @@ export default function MachineReturnTable({
                   return (
                     <TableRow
                       key={`${row.returnId}-${index}`}
-                      onClick={() => handleRowClick(row.serialNumber)}
-                      className="group cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50"
+                      className="group border-b border-slate-100 transition-colors hover:bg-slate-50"
                     >
                       {/* ROW NUMBER */}
 
@@ -575,8 +643,7 @@ export default function MachineReturnTable({
                         <div className="flex items-center justify-center gap-2">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               // TODO: call the printing function here
                             }}
                             aria-label={`Print machine return ${row.returnId}`}
@@ -588,8 +655,7 @@ export default function MachineReturnTable({
 
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               // TODO: open the viewer here
                             }}
                             aria-label={`View machine return ${row.returnId}`}
@@ -606,21 +672,20 @@ export default function MachineReturnTable({
                       <TableCell className={stickyActionCell}>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation(); // don't also fire the row's onClick
-                            openApprovalModal(row);
-                          }}
+                          onClick={() => openApprovalModal(row)}
                           aria-label={`Approve or reject machine return ${row.returnId}`}
                           className={rowButton}
                         >
-                          <ReceiptEuro size={14} strokeWidth={2} />
+                          <ClipboardCheck size={14} strokeWidth={2} />
                           Approve/Reject
                         </button>
                       </TableCell>
 
                       {/* MACHINE RETURN ID */}
 
-                      <TableCell className={cellStrong}>{row.returnId}</TableCell>
+                      <TableCell className={cellStrong}>
+                        {row.returnId}
+                      </TableCell>
 
                       {/* STATUS */}
 
@@ -642,17 +707,19 @@ export default function MachineReturnTable({
                       {/* SERIAL NUMBER */}
 
                       <TableCell className={cellBase}>
-                        {row.serialNumber}
+                        {orDash(row.serialNumber)}
                       </TableCell>
 
                       {/* P NUMBER */}
 
-                      <TableCell className={cellBase}>{row.pnumber}</TableCell>
+                      <TableCell className={cellBase}>
+                        {orDash(row.pnumber)}
+                      </TableCell>
 
                       {/* PART NUMBER */}
 
                       <TableCell className={cellBase}>
-                        {row.partNumber}
+                        {orDash(row.partNumber)}
                       </TableCell>
 
                       {/* CUSTOMER NAME */}
@@ -696,16 +763,17 @@ export default function MachineReturnTable({
           </Table>
         </div>
 
-        {/* ===================================================
+        {/* =================================================
             PAGINATION
-        =================================================== */}
+        ================================================= */}
 
         <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           {/* PAGE INFO */}
 
           <div className="text-sm text-slate-500">
             Page{" "}
-            <span className="font-medium text-slate-700">{currentPage}</span> of{" "}
+            <span className="font-medium text-slate-700">{currentPage}</span>{" "}
+            of{" "}
             <span className="font-medium text-slate-700">
               {Math.max(totalPages, 1)}
             </span>
@@ -762,17 +830,37 @@ export default function MachineReturnTable({
       </div>
 
       {/* ===================================================
-          APPROVAL MODAL
+          APPROVAL MODALS
       =================================================== */}
 
-      <MachineReturnModal
-        open={isMachineReturnModalOpen}
-        details={details}
-        returnNo={selectedReturn?.returnId}
-        onClose={closeApprovalModal}
-        onApprove={(formData) => submitDecision("approve", formData)}
-        onReject={(formData) => submitDecision("reject", formData)}
-      />
+      {/* HOD MODAL */}
+
+      {selectedReturn && isHodRole && (
+        <MachineReturnHOD
+          open
+          details={details}
+          returnNo={selectedReturn.returnId}
+          onClose={closeApprovalModal}
+          onApprove={(formData) => submitHodDecision("approve", formData)}
+          onReject={(formData) => submitHodDecision("reject", formData)}
+        />
+      )}
+
+      {/* FINANCE MODAL */}
+
+      {selectedReturn && !isHodRole && (
+        <MachineReturnModal
+          open
+          onClose={closeApprovalModal}
+          machineReturnID={selectedReturn.returnId}
+          approverID={userName}
+          companyId={companyId}
+          details={details}
+          returnNo={selectedReturn.returnId}
+          onApprove={submitFinanceDecision}
+          onReject={submitFinanceDecision}
+        />
+      )}
     </section>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 import { rawConfigSchema } from "shadcn/schema";
-import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto, machineSearchResult} from "./types";
+import { MachineStatusSummary, RecentInvoices, kpiSummery, InventoryItem, InvoiceRequestQuery, PaginatedResult, InvoiceLists, CreditNote, LoginRequestModel, LoginResponseModel, RevenueTrendPoint, InvoiceRevenueLists, ExcelResponse, PartsModel, PendingInvoiceLists, creditNoteInfo, InternalConsumptionResponse, CreateCreditNoteRequest, creditNoteApiResponse, MachineListResponse, MachineList, CreatePartialCreditRequestPayload, Invoice, SaveMeterReadingPayload, InvoiceRequestParams, InvoicePreview, ProcessInvoiceResponse, MachineRecord, MachineReturnRequest, MachineReturnResponse, machineReturnReqDto, machineReturnResponseDto, machineSearchResult, MachineReturnApprovalFinanceRequest} from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 import { promises } from "dns";
+import { hodApprovalData } from "@/components/machine-return/MachineReturnHOD";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,6 +22,40 @@ function getCompanyId(): string {
   }
 
   return companyId;
+}
+
+// Export: returns ALL matching invoices (no paging) from the dedicated export endpoint
+export async function getInvoiceListsExport(
+    params: Omit<InvoiceRequestQuery, "page" | "pageSize">
+): Promise<InvoiceLists[]> {
+  const searchParams = new URLSearchParams();
+
+  if (params.query) {
+    searchParams.set("query", params.query);
+  }
+
+  if (params.fromDate) {
+    searchParams.set("fromDate", params.fromDate);
+  }
+
+  if (params.toDate) {
+    searchParams.set("toDate", params.toDate);
+  }
+
+  searchParams.set("companyId", params.companyId);
+  searchParams.set("invoiceStatus", params.status);
+
+  const response = await fetch(
+      `${API_BASE}reports/invoice-lists/export?${searchParams.toString()}`,
+      { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new Error(message || `Export failed (${response.status})`);
+  }
+
+  return response.json();
 }
 
 function getUserName(): string { 
@@ -113,6 +148,49 @@ export async function approveCreditNoteFinance(invoiceNumber: string, reason: st
   });
 
   if (!response.ok) {
+    throw new Error("Something went wrong.");
+  }
+}
+
+
+export async function approveMachineReturnFinance(
+    request: MachineReturnApprovalFinanceRequest
+) {
+    debugger;
+    const response = await fetch(
+        `${API_BASE}machinemovement/update-machine-return-finance`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(request),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await response.text() || "Something went wrong.");
+    }
+
+    return await response.json();
+}
+
+
+export async function approveMachineReturnHod(request: hodApprovalData, status: string){
+  const response = await fetch(`${API_BASE}machinemovement/update-machine-return`, { 
+    method: "POST", 
+    headers:{ 
+      "Content-Type": "application/json"
+    }, 
+    body: JSON.stringify({
+      machineReturnID: request.machineReturnID, 
+      approverID: request.approverID, 
+      status: status, 
+      comment: request.comment
+    })
+  });  
+
+  if (!response.ok) { 
     throw new Error("Something went wrong.");
   }
 }

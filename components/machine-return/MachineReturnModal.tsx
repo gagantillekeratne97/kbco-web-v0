@@ -1,5 +1,6 @@
-"use client"; 
+"use client";
 
+import type { MachineReturnApprovalFinanceRequest } from "@/lib/types";
 import {
   useEffect,
   useRef,
@@ -7,22 +8,17 @@ import {
   type ChangeEvent,
   type InputHTMLAttributes,
   type ReactNode,
+  type Ref,
 } from "react";
 
-export interface ReturnApprovalData {
-  far: string;
-  assetCost: number;
-  writtenDownCost: number;
-  debtorsAmount: number;
-  debtorsDateTime: string; // local time, format "yyyy-MM-ddTHH:mm"
-}
+/* ----------------------------- Types ----------------------------- */
 
 export interface MachineReturnDetails {
-  customerName: string;  
+  customerName: string;
   agreementCode?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
-  startMeterReading?: string;  
+  startMeterReading?: string;
   department?: string;
   address: string;
   contactPerson: string;
@@ -36,24 +32,46 @@ export interface MachineReturnDetails {
   reasonForReturn: string;
 }
 
+type ApprovalStatus = "APPROVED" | "REJECTED";
+
 interface MachineReturnModalProps {
   open: boolean;
-  details?: MachineReturnDetails; // Section A, shown as read-only labels
   onClose: () => void;
-  onApprove: (data: ReturnApprovalData) => void | Promise<void>;
-  onReject: (data: ReturnApprovalData) => void | Promise<void>;
-  returnNo?: string; // e.g. "001/RTN/12"
+
+  machineReturnID: string;
+  approverID: string;
+  companyId: string;
+
+  details?: MachineReturnDetails;
+  returnNo: string;
+
+  onApprove: (data: MachineReturnApprovalFinanceRequest) => void | Promise<void>;
+  onReject: (data: MachineReturnApprovalFinanceRequest) => void | Promise<void>;
 }
 
 interface FormState {
-  far: string;
+  farValue: string;
   assetCost: string;
+  bookValue: string;
   writtenDownCost: string;
   debtorsAmount: string;
   debtorsDateTime: string;
+  comment: string;
 }
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
+type MoneyKey = "farValue" | "assetCost" | "bookValue" | "writtenDownCost" | "debtorsAmount";
+
+/* Money fields: one list drives both the inputs and the validation */
+const MONEY_FIELDS: { key: MoneyKey; label: string; error: string }[] = [
+  { key: "farValue", label: "FAR Value", error: "Enter a valid FAR value." },
+  { key: "assetCost", label: "Asset Cost", error: "Enter the asset cost." },
+  { key: "bookValue", label: "Book Value", error: "Enter the book value." },
+  { key: "writtenDownCost", label: "Written Down Cost", error: "Enter the written down cost." },
+  { key: "debtorsAmount", label: "Debtors Amount", error: "Enter the debtors amount." },
+];
+
+/* --------------------------- Helpers ----------------------------- */
 
 /* Current local date and time in the format a datetime-local input expects */
 const nowLocalInput = (): string => {
@@ -63,34 +81,54 @@ const nowLocalInput = (): string => {
 };
 
 const makeEmptyForm = (): FormState => ({
-  far: "",
+  farValue: "",
   assetCost: "",
+  bookValue: "",
   writtenDownCost: "",
   debtorsAmount: "",
-  debtorsDateTime: nowLocalInput(), // defaults to now, user can change it
+  debtorsDateTime: nowLocalInput(),
+  comment: "",
 });
 
-export default function MachineReturnModal({
+const isValidAmount = (value: string): boolean =>
+  value.trim() !== "" && Number.isFinite(Number(value)) && Number(value) >= 0;
+
+/* Fallback only: the companyId prop is used first */
+const getStoredCompanyId = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("companyID") ?? sessionStorage.getItem("companyID");
+};
+
+/* --------------------------- Component --------------------------- */
+
+const MachineReturnModal = ({
   open,
-  details,
   onClose,
+  machineReturnID,
+  approverID,
+  companyId,
+  details,
+  returnNo,
   onApprove,
   onReject,
-  returnNo,
-}: MachineReturnModalProps) {
+}: MachineReturnModalProps) => {
   const [form, setForm] = useState<FormState>(makeEmptyForm);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [busy, setBusy] = useState(false);
-  const farRef = useRef<HTMLInputElement>(null);
+  const [busyStatus, setBusyStatus] = useState<ApprovalStatus | null>(null);
+  const [submitError, setSubmitError] = useState("");
+  const firstFieldRef = useRef<HTMLInputElement>(null);
+
+  const busy = busyStatus !== null;
 
   // Reset and focus every time the modal opens
   useEffect(() => {
-    if (open) {
-      setForm(makeEmptyForm());
-      setErrors({});
-      setBusy(false);
-      setTimeout(() => farRef.current?.focus(), 0);
-    }
+    if (!open) return;
+    setForm(makeEmptyForm());
+    setErrors({});
+    setSubmitError("");
+    setBusyStatus(null);
+    const t = setTimeout(() => firstFieldRef.current?.focus(), 0);
+    return () => clearTimeout(t);
   }, [open]);
 
   // Close on Escape
@@ -103,6 +141,7 @@ export default function MachineReturnModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, busy, onClose]);
 
+  // All hooks are above this line, so returning early is safe
   if (!open) return null;
 
   const set =
@@ -114,37 +153,65 @@ export default function MachineReturnModal({
 
   const validate = (): boolean => {
     const er: FormErrors = {};
-    if (!form.far.trim()) er.far = "Enter the FAR value.";
-    if (form.assetCost === "" || Number(form.assetCost) < 0)
-      er.assetCost = "Enter the asset cost.";
-    if (form.writtenDownCost === "" || Number(form.writtenDownCost) < 0)
-      er.writtenDownCost = "Enter the written down cost.";
-    if (form.debtorsAmount === "" || Number(form.debtorsAmount) < 0)
-      er.debtorsAmount = "Enter the debtors amount.";
-    if (!form.debtorsDateTime)
+
+    for (const { key, error } of MONEY_FIELDS) {
+      if (!isValidAmount(form[key])) er[key] = error;
+    }
+    if (!form.debtorsDateTime) {
       er.debtorsDateTime = "Enter the debtors date and time.";
+    }
+
     setErrors(er);
     return Object.keys(er).length === 0;
   };
 
-  const payload = (): ReturnApprovalData => ({
-    far: form.far.trim(),
-    assetCost: Number(form.assetCost),
-    writtenDownCost: Number(form.writtenDownCost),
-    debtorsAmount: Number(form.debtorsAmount),
+  const buildPayload = (
+    status: ApprovalStatus,
+    resolvedCompanyId: string
+  ): MachineReturnApprovalFinanceRequest => ({
+    companyId: resolvedCompanyId,
+
+    farValue: Number(form.farValue) || 0,
+    assetCost: Number(form.assetCost) || 0,
+    bookValue: Number(form.bookValue) || 0,
+    writtenDownCost: Number(form.writtenDownCost) || 0,
+    debtorsAmount: Number(form.debtorsAmount) || 0,
+
     debtorsDateTime: form.debtorsDateTime,
+
+    approverDetails: {
+      machineReturnID,
+      approverID,
+      status,
+      comment: form.comment.trim(),
+    },
   });
 
   const run = async (
-    handler: (data: ReturnApprovalData) => void | Promise<void>,
+    handler: (data: MachineReturnApprovalFinanceRequest) => void | Promise<void>,
+    status: ApprovalStatus,
     needsValidation: boolean
   ) => {
+    if (busy) return;
+    setSubmitError("");
+
     if (needsValidation && !validate()) return;
-    setBusy(true);
+
+    const resolvedCompanyId = companyId || getStoredCompanyId();
+    if (!resolvedCompanyId) {
+      setSubmitError("Company ID not found. Please sign in again.");
+      return;
+    }
+
+    setBusyStatus(status);
     try {
-      await handler(payload());
+      await handler(buildPayload(status, resolvedCompanyId));
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
     } finally {
-      setBusy(false);
+      setBusyStatus(null);
     }
   };
 
@@ -202,57 +269,26 @@ export default function MachineReturnModal({
                 <Detail label="No. of Machines" value={details.noOfMachines} />
                 <Detail label="Last Meter reading" value={details.meterReading} />
                 <Detail label="Handover date" value={details.handoverDate} />
-                <Detail
-                  label="Reason for return"
-                  value={details.reasonForReturn}
-                  wide
-                />
+                <Detail label="Reason for return" value={details.reasonForReturn} wide />
               </dl>
             </section>
           )}
-          
-          <div className="space-y-4">          
-             <Field label="FAR" error={errors.far} htmlFor="far">
-              <input
-                id="far"
-                ref={farRef}
-                type="text"
-                value={form.far}
-                onChange={set("far")}
-                placeholder="Enter FAR value"
-                className={inputClass(errors.far)}
-              />
-            </Field>
 
-            <Field label="Asset Cost / Book Value" error={errors.assetCost} htmlFor="assetCost">
-              <MoneyInput
-                id="assetCost"
-                value={form.assetCost}
-                onChange={set("assetCost")}
-                className={inputClass(errors.assetCost)}
-              />
-            </Field>
-
-            <Field label="Written Down Cost" error={errors.writtenDownCost} htmlFor="writtenDownCost">
-              <MoneyInput
-                id="writtenDownCost"
-                value={form.writtenDownCost}
-                onChange={set("writtenDownCost")}
-                className={inputClass(errors.writtenDownCost)}
-              />
-            </Field>
-
-            <Field label="Debtors Amount" error={errors.debtorsAmount} htmlFor="debtorsAmount">
-              <MoneyInput
-                id="debtorsAmount"
-                value={form.debtorsAmount}
-                onChange={set("debtorsAmount")}
-                className={inputClass(errors.debtorsAmount)}
-              />
-            </Field>
+          <div className="space-y-4">
+            {MONEY_FIELDS.map(({ key, label }, index) => (
+              <Field key={key} label={label} error={errors[key]} htmlFor={key}>
+                <MoneyInput
+                  id={key}
+                  inputRef={index === 0 ? firstFieldRef : undefined}
+                  value={form[key]}
+                  onChange={set(key)}
+                  className={inputClass(errors[key])}
+                />
+              </Field>
+            ))}
 
             <Field
-              label="Debtors date and time"
+              label="Debtors Date and Time"
               error={errors.debtorsDateTime}
               htmlFor="debtorsDateTime"
             >
@@ -264,30 +300,53 @@ export default function MachineReturnModal({
                 className={inputClass(errors.debtorsDateTime)}
               />
             </Field>
+
+            <Field label="Finance Comment" htmlFor="comment">
+              <input
+                id="comment"
+                type="text"
+                value={form.comment}
+                onChange={set("comment")}
+                placeholder="Enter your approval comments..."
+                className={inputClass()}
+              />
+            </Field>
           </div>
+
+          {submitError && (
+            <p role="alert" className="text-sm text-red-600">
+              {submitError}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 rounded-b-xl border-t border-slate-200 bg-slate-50 px-6 py-4">
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(onReject, false)}
-            className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:opacity-50"
+            onClick={() => run(onReject, "REJECTED", false)}
+            className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-50"
           >
-            Reject
+            {busyStatus === "REJECTED" ? "Processing..." : "Reject"}
           </button>
+
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(onApprove, true)}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:opacity-50"
+            onClick={() => run(onApprove, "APPROVED", true)}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
           >
-            Approve
+            {busyStatus === "APPROVED" ? "Processing..." : "Approve"}
           </button>
         </div>
       </div>
-    </div>);
-}
+    </div>
+  );
+};
+
+export default MachineReturnModal;
+
+/* ------------------------ Small components ------------------------ */
 
 interface DetailProps {
   label: string;
@@ -333,16 +392,18 @@ function Field({ label, htmlFor, error, children }: FieldProps) {
   );
 }
 
-function MoneyInput({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+type MoneyInputProps = InputHTMLAttributes<HTMLInputElement> & {
+  inputRef?: Ref<HTMLInputElement>;
+};
+
+function MoneyInput({ className, inputRef, ...props }: MoneyInputProps) {
   return (
     <div className="relative">
       <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-500">
         Rs.
       </span>
       <input
+        ref={inputRef}
         type="number"
         min="0"
         step="0.01"
