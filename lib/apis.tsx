@@ -1055,7 +1055,6 @@ export async function getInvoiceLists(params: InvoiceRequestQuery): Promise<Pagi
 }
 
 export async function getMachineReturnLists(params: machineReturnReqDto): Promise<PaginatedResult<machineReturnResponseDto>> {
-  debugger;
   const searchParams = new URLSearchParams(); 
   
   if (params.query) {
