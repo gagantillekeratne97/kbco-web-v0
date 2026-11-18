@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ElementType } from "react";
+import
+{ useEffect, useState, useMemo, type ElementType } from "react";
 import type {
   MachineReturnApprovalFinanceRequest,
   machineReturnResponseDto,
@@ -38,9 +39,15 @@ import MachineReturnModal, {
 } from "./MachineReturnModal";
 import MachineReturnHOD, { type hodApprovalData } from "./MachineReturnHOD";
 
+import MachineReturnStoresModal, {
+  MachineReturnApprovalStoresRequest,
+  MachineReturnStoresDetails,
+  MachineReturnStoresForm
+} from "./MachineReturnStoresModal";
+
 import {
   approveMachineReturnFinance,
-  approveMachineReturnHod,
+  approveMachineReturnHod, updateMachineReturnCollection,
 } from "@/lib/apis";
 
 /* =========================================================
@@ -194,6 +201,10 @@ const COLUMN_COUNT = 13;
 /** Roles that use the HOD approval modal. Everyone else gets the finance modal. */
 const HOD_ROLES = ["P2P", "Doculine"];
 
+const STORES_ROLE = ["Logistics"];
+
+const FINANCE_ROLE = ["Accounts", "Administrator"];
+
 const cellBase = "px-4 py-3 text-sm text-slate-600 whitespace-nowrap";
 
 const cellStrong =
@@ -260,6 +271,8 @@ export default function MachineReturnTable({
 
   // Worked out from the role, so it can never get out of sync with it
   const isHodRole = HOD_ROLES.includes(userRole);
+  const isFinanceRole = FINANCE_ROLE.includes(userRole);
+  const isStoresRole = STORES_ROLE.includes(userRole);
 
   /* =======================================================
      MODAL STATE
@@ -358,7 +371,7 @@ export default function MachineReturnTable({
   /* =======================================================
      FINANCE APPROVAL API
      Errors are NOT caught here on purpose: the finance modal
-     catches them and shows the message inside the dialog.
+     catches them and shows the message inside the dialog.approveMachineReturnFinance
   ======================================================= */
 
   const submitFinanceDecision = async (
@@ -367,6 +380,7 @@ export default function MachineReturnTable({
     if (!selectedReturn) return;
 
     // Approve or reject is already inside formData.approverDetails.status
+    formData.bookValue = 0;
     await approveMachineReturnFinance(formData);
 
     closeApprovalModal();
@@ -381,6 +395,8 @@ export default function MachineReturnTable({
 
   const details: MachineReturnDetails | undefined = selectedReturn
     ? {
+        customerCode: selectedReturn.customerCode,
+        machineRefNumber: selectedReturn?.machineRefNumber ?? "",
         customerName: selectedReturn.customerName,
         agreementCode: selectedReturn.agreementCode ?? "",
         address: selectedReturn.address ?? "",
@@ -391,10 +407,50 @@ export default function MachineReturnTable({
         invoiceNo: selectedReturn.invoiceNumber,
         location: selectedReturn.location ?? "",
         meterReading: selectedReturn.meterReading ?? "",
-        handoverDate: formatDate(selectedReturn.installationDate),
+        handoverDate: formatDate(selectedReturn.date),
         reasonForReturn: selectedReturn.returnReason,
+        returnDate: selectedReturn.returnDate ?? "",
       }
     : undefined;
+
+  /* =======================================================
+     STORES MODAL PRE-FILLED
+  ======================================================= */
+  const storesInitialData: MachineReturnStoresDetails | undefined = selectedReturn
+      ? {
+        machineRefNumber: selectedReturn.machineRefNumber ?? "",
+        // qNumber: selectedReturn.qnumber ?? "",   // add if your DTO has it
+        serialNo: selectedReturn.serialNumber ?? "",
+        model: selectedReturn.model ?? "",
+        customerCode: selectedReturn.customerCode ?? "",
+        customerName: selectedReturn.customerName ?? "",
+        address: selectedReturn.address ?? "",
+        contactPerson: selectedReturn.contactPerson ?? "",
+        pickUpLocation: selectedReturn.location ?? "",
+        requestDate: formatDate(selectedReturn.date),
+        returnDate: selectedReturn.returnDate ?? ""
+      }
+      : undefined;
+
+
+  const submitStoresReturn = async (formData: MachineReturnApprovalStoresRequest) => {
+    if (!selectedReturn) return;
+    console.log(selectedReturn);
+    try {
+      // The submit function should goes in here. ok
+      await updateMachineReturnCollection(formData);
+      closeApprovalModal();
+      onRefresh?.();
+    }
+    catch (error) {
+      console.error("Stores return failed:", error);
+      alert(
+          error instanceof Error
+              ? error.message
+              : "Stores return failed. Please try again."
+      );
+    }
+  }
 
   /* =======================================================
      ROW HELPERS
@@ -713,7 +769,7 @@ export default function MachineReturnTable({
                       {/* P NUMBER */}
 
                       <TableCell className={cellBase}>
-                        {orDash(row.pnumber)}
+                        {orDash(row.machineRefNumber)}
                       </TableCell>
 
                       {/* PART NUMBER */}
@@ -848,7 +904,7 @@ export default function MachineReturnTable({
 
       {/* FINANCE MODAL */}
 
-      {selectedReturn && !isHodRole && (
+      {selectedReturn && isFinanceRole && (
         <MachineReturnModal
           open
           onClose={closeApprovalModal}
@@ -861,6 +917,20 @@ export default function MachineReturnTable({
           onReject={submitFinanceDecision}
         />
       )}
+
+
+      {/* STORES MODAL */}
+      {selectedReturn && isStoresRole && (
+          <MachineReturnStoresModal
+              open
+              onClose={closeApprovalModal}
+              machineReturnId={selectedReturn.returnId}
+              approverID={userName}
+              details={details}
+              onSubmit={submitStoresReturn}
+          />
+      )}
+
     </section>
   );
 }

@@ -41,6 +41,18 @@ export default function CreditNoteRequestPage() {
   // GET COMPANY ID
   // =========================================================
 
+  const getUserCode = (): string => {
+    const userCode =
+        localStorage.getItem("userCode") ||
+        sessionStorage.getItem("userCode");
+
+    if (!userCode) {
+      throw new Error("User code not found.");
+    }
+
+    return userCode;
+  };
+
   const getCompanyId = (): string => {
     const companyId =
       localStorage.getItem("companyID") ||
@@ -167,6 +179,7 @@ export default function CreditNoteRequestPage() {
           .split("T")[0],
         companyId: getCompanyId(),
         reason: reason.trim(),
+        createdBy: getUserCode()
       });
 
       if (result.status === 200) {

@@ -7,6 +7,23 @@ export type kpiSummery = {
     newInvoices: { value: number; percentage: number };        
 };
 
+export interface NotificationItem {
+  id: number;
+  userCode: string;
+  title: string;
+  message: string;
+  referenceNumber: string;
+  processType: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationResponse {
+  status: number;
+  data: NotificationItem[];
+}
+
+
 export interface InvoicePreview {
   status: number;
   master: {
@@ -128,11 +145,11 @@ export interface machineReturnReqDto {
 }
 
 // machine return table columns 
-export interface machineReturnResponseDto { 
+export interface machineReturnResponseDto {
   returnId: string; 
-  date: string; 
-  pnumber: string;
+  date: string;
   agreementCode?: string;
+  machineRefNumber: string;
   address?: string;
   contactPerson?: string;
   noOfMachines: string;
@@ -144,7 +161,9 @@ export interface machineReturnResponseDto {
   meterReading?: number;
   serialNumber: string;
   partNumber: string;
-  customerName: string; 
+  customerCode: string;
+  customerName: string;
+  returnDate: string;
   returnReason: string; 
   department: string; 
   installationDate: string; 
@@ -257,6 +276,7 @@ export interface CreateCreditNoteRequest {
   creditNoteDate: string;
   companyId: string;
   reason: string;
+  createdBy: string;
 } 
 
 export interface CreatePartialCreditRequestPayload { 
@@ -500,7 +520,7 @@ export interface MachineReturnApprovalRequest {
 
 export interface MachineReturnApprovalFinanceRequest {
     companyId: string;
-    farValue: number;
+    farValue: string;
     assetCost: number;
     bookValue: number;
     writtenDownCost: number;

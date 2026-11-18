@@ -35,11 +35,13 @@ import {
   machineReturnResponseDto,
   machineSearchResult,
   MachineReturnApprovalFinanceRequest,
-  InternalConsumptionDto
+  InternalConsumptionDto, MachineReturnApprovalRequest, NotificationResponse
 } from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 import { promises } from "dns";
 import { hodApprovalData } from "@/components/machine-return/MachineReturnHOD";
+import {MachineReturnDetails} from "@/components/machine-return/MachineReturnModal";
+import {MachineReturnApprovalStoresRequest} from "@/components/machine-return/MachineReturnStoresModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -58,6 +60,66 @@ function getCompanyId(): string {
   }
 
   return companyId;
+}
+
+// Mark one notification as read
+export const markNotificationAsRead = async (id: number) => {
+  const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+  const response = await fetch(
+      `${API_BASE}notifications/mark-read/${id}`,
+      {
+        method: "PUT"
+      }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to mark notification as read");
+  }
+
+  return response.json();
+};
+
+// Mark all notifications as read
+export const markAllNotificationsAsRead = async (userCode: string) => {
+  const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+  const response = await fetch(
+      `${API_BASE}notifications/mark-all-read/${encodeURIComponent(userCode)}`,
+      {
+        method: "PUT"
+      }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to mark all notifications as read");
+  }
+
+  return response.json();
+};
+
+// Get All Notifications function goes here.
+export const getNotifications = async (userCode: string) => {
+  debugger;
+  const response = await fetch(
+      `${API_BASE}notifications/get-notifications/${userCode}`,
+      {
+        headers: {
+          // Add your existing authorization header here
+        },
+        cache: "no-store",
+      }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to load notifications");
+  }
+
+  return await response.json();
 }
 
 // Export: returns ALL matching invoices (no paging) from the dedicated export endpoint
@@ -188,6 +250,23 @@ export async function approveCreditNoteFinance(invoiceNumber: string, reason: st
   }
 }
 
+//Machine return stores collection approval api calling function
+export async function updateMachineReturnCollection(request:MachineReturnApprovalStoresRequest) {
+  debugger;
+  const response = await fetch(`${API_BASE}machinemovement/update-machine-collection`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error("Something went wrong.");
+  }
+
+  return await response.json();
+}
 
 export async function approveMachineReturnFinance(
     request: MachineReturnApprovalFinanceRequest
@@ -1052,6 +1131,25 @@ export async function getInvoiceLists(params: InvoiceRequestQuery): Promise<Pagi
   }
 
   return response.json();
+}
+
+export async function getCompanyName(companyId: string): Promise<string> {
+  const response = await fetch(
+      `${API_BASE}machinemovement/getcompanyname?companyId=${encodeURIComponent(companyId)}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch companyname");
+  }
+
+  const raw = await response.text();
+
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : parsed.companyName ?? "";
+  } catch {
+    return raw; // plain text body
+  }
 }
 
 export async function getMachineReturnLists(params: machineReturnReqDto): Promise<PaginatedResult<machineReturnResponseDto>> {

@@ -105,7 +105,7 @@ export default function Topbar({ title }: TopbarProps) {
       <div className="ml-auto flex items-center gap-3">
 
         {/* Notification */}
-        <NotificationBell />
+        <NotificationBell userCode={userCode}/>
 
         <div className="w-px h-8 bg-border hidden sm:block" />
 

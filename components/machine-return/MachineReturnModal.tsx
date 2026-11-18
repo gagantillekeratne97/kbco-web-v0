@@ -14,6 +14,8 @@ import {
 /* ----------------------------- Types ----------------------------- */
 
 export interface MachineReturnDetails {
+  customerCode: string;
+  machineRefNumber: string;
   customerName: string;
   agreementCode?: string;
   invoiceNumber?: string;
@@ -28,6 +30,7 @@ export interface MachineReturnDetails {
   location: string;
   meterReading: string | number;
   handoverDate: string;
+  returnDate: string;
   noOfMachines: string;
   reasonForReturn: string;
 }
@@ -64,9 +67,7 @@ type MoneyKey = "farValue" | "assetCost" | "bookValue" | "writtenDownCost" | "de
 
 /* Money fields: one list drives both the inputs and the validation */
 const MONEY_FIELDS: { key: MoneyKey; label: string; error: string }[] = [
-  { key: "farValue", label: "FAR Value", error: "Enter a valid FAR value." },
   { key: "assetCost", label: "Asset Cost", error: "Enter the asset cost." },
-  { key: "bookValue", label: "Book Value", error: "Enter the book value." },
   { key: "writtenDownCost", label: "Written Down Cost", error: "Enter the written down cost." },
   { key: "debtorsAmount", label: "Debtors Amount", error: "Enter the debtors amount." },
 ];
@@ -171,7 +172,7 @@ const MachineReturnModal = ({
   ): MachineReturnApprovalFinanceRequest => ({
     companyId: resolvedCompanyId,
 
-    farValue: Number(form.farValue) || 0,
+    farValue: form.farValue,
     assetCost: Number(form.assetCost) || 0,
     bookValue: Number(form.bookValue) || 0,
     writtenDownCost: Number(form.writtenDownCost) || 0,
@@ -273,6 +274,21 @@ const MachineReturnModal = ({
               </dl>
             </section>
           )}
+
+          <Field
+              label="Fixed Asset Code"
+              error={errors.farValue}
+              htmlFor="farValue"
+          >
+            <input
+                id="farValue"
+                type="text"
+                value={form.farValue}
+                onChange={set("farValue")}
+                placeholder="Enter fixed asset code"
+                className={inputClass(errors.farValue)}
+            />
+          </Field>
 
           <div className="space-y-4">
             {MONEY_FIELDS.map(({ key, label }, index) => (

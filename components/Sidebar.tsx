@@ -79,7 +79,7 @@ export default function Sidebar() {
   }, [pathname]);
 
   const handleLogout = () => { 
-    router.push("/login");
+    router.push("/");
   }
 
   return (

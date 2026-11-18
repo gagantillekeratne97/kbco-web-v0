@@ -141,7 +141,7 @@ export default function MachineReturnPage() {
         companyId,
 
         status: searchStatus,
-      });      
+      });
 
       // Invoice records
       setMachineReturns(data.items);      
@@ -206,7 +206,7 @@ export default function MachineReturnPage() {
           {/* Machine Return Table */}
           {/* ================================================== */}
 
-          <MachineReturnTable 
+          <MachineReturnTable
             data={machineReturns} 
             currentPage={currentPage} 
             totalPages={totalPages}
