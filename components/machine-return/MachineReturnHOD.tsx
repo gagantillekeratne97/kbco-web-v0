@@ -102,11 +102,11 @@ export default function MachineReturnHOD({
     return userCode;
   };
 
-  const submit = async (decision: "approve" | "reject") => {
+  const submit = async (decision: "APPROVED" | "REJECTED") => {
     const comment = form.hodComment.trim();
 
     // A comment is required when rejecting
-    if (decision === "reject" && !comment) {
+    if (decision === "REJECTED" && !comment) {
       setErrors({ hodComment: "Please enter a comment when rejecting." });
       commentRef.current?.focus();
       return;
@@ -123,7 +123,7 @@ export default function MachineReturnHOD({
         approverID: userCode
       };
 
-      if (decision === "approve") {
+      if (decision === "APPROVED") {
         await onApprove(payload);
       } else {
         await onReject(payload);
@@ -224,7 +224,7 @@ export default function MachineReturnHOD({
           </button>
           <button
             type="button"
-            onClick={() => submit("reject")}
+            onClick={() => submit("REJECTED")}
             disabled={busy}
             className="inline-flex h-10 items-center rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -232,11 +232,11 @@ export default function MachineReturnHOD({
           </button>
           <button
             type="button"
-            onClick={() => submit("approve")}
+            onClick={() => submit("APPROVED")}
             disabled={busy}
             className="inline-flex h-10 items-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy ? "Saving..." : "Approve"}
+            {busy ? "Saving..." : "APPROVED"}
           </button>
         </div>
       </div>

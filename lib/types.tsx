@@ -144,6 +144,23 @@ export interface machineReturnReqDto {
   companyId: string; 
 }
 
+// machine tech transfer request
+export interface techTransferRequest {
+  customerCode: string;
+  newTechCode: string;
+  transferedBy: string;
+  comment: string;
+}
+
+// machine tech transfer response
+export interface techTransferResponse {
+  success: string;
+  message: string;
+  customerCode: string;
+  newTechCode: string;
+  transferedMachineCount: number;
+}
+
 // machine return table columns 
 export interface machineReturnResponseDto {
   returnId: string; 

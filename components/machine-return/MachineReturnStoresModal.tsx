@@ -19,10 +19,11 @@ import {
 import { getCompanyName} from "@/lib/apis";
 import {printMachineCollectionNote} from "@/lib/pdf/machineCollectionNote";
 import {format} from "node:url";
+import {machineReturnReqDto} from "@/lib/types";
 
 // @/lib/types
 export interface MachineReturnApprovalStoresRequest {
-    machineReturnId: string;
+    machineReturnID: string;
     approverID: string;
     status: "APPROVED" | "REJECTED";
     comment?: string;
@@ -54,11 +55,11 @@ export interface MachineReturnStoresDetails {
 interface Props {
     open: boolean;
     onClose: () => void;
-    machineReturnId: string;
+    machineReturnID: string;
     approverID: string;
     details?: MachineReturnStoresDetails;
     /** Should throw on failure so the error can be shown inside the dialog. */
-    onSubmit: (data: MachineReturnStoresForm) => Promise<void> | void;
+    onSubmit: (data: MachineReturnApprovalStoresRequest) => Promise<void> | void;
 }
 
 function Info({
@@ -130,7 +131,7 @@ const formatDateTime = (value?: string) => {
 export default function MachineReturnStoresModal({
                                                      open,
                                                      onClose,
-                                                     machineReturnId,
+                                                     machineReturnID,
                                                      approverID,
                                                      details,
                                                      onSubmit,
@@ -167,7 +168,7 @@ export default function MachineReturnStoresModal({
             let companyId = getCompanyId();
             companyName = await getCompanyName(companyId);
             await printMachineCollectionNote({
-                returnId: machineReturnId,
+                returnId: machineReturnID,
                 requestDate: formatDateTime(details?.returnDate),
                 companyName,
                 details
@@ -188,7 +189,7 @@ export default function MachineReturnStoresModal({
             setError("");
             setSubmitting(null);
         }
-    }, [open, machineReturnId]);
+    }, [open, machineReturnID]);
 
     useEffect(() => {
         if (!open) return;
@@ -204,8 +205,8 @@ export default function MachineReturnStoresModal({
         setError("");
         setSubmitting(status);
 
-        const payload: MachineReturnStoresForm = {
-            machineReturnId,
+        const payload: MachineReturnApprovalStoresRequest = {
+            machineReturnID,
             approverID,
             status,
             ...(comment.trim() ? { comment: comment.trim() } : {}),
@@ -240,7 +241,7 @@ export default function MachineReturnStoresModal({
                         </h2>
                         <p className="text-sm text-slate-500">
                             Return ID{" "}
-                            <span className="font-medium text-slate-700">{machineReturnId}</span>
+                            <span className="font-medium text-slate-700">{machineReturnID}</span>
                         </p>
                     </div>
                     <button

@@ -35,7 +35,7 @@ import {
   machineReturnResponseDto,
   machineSearchResult,
   MachineReturnApprovalFinanceRequest,
-  InternalConsumptionDto, MachineReturnApprovalRequest, NotificationResponse
+  InternalConsumptionDto, MachineReturnApprovalRequest, NotificationResponse, techTransferRequest, techTransferResponse
 } from "./types";
 import { CustomerSearchResult } from "@/components/bw-invoice/customerSearch";
 import { promises } from "dns";
@@ -252,7 +252,6 @@ export async function approveCreditNoteFinance(invoiceNumber: string, reason: st
 
 //Machine return stores collection approval api calling function
 export async function updateMachineReturnCollection(request:MachineReturnApprovalStoresRequest) {
-  debugger;
   const response = await fetch(`${API_BASE}machinemovement/update-machine-collection`, {
     method: "POST",
     headers: {
@@ -290,8 +289,27 @@ export async function approveMachineReturnFinance(
     return await response.json();
 }
 
+export async function techTransfer(customerCode: string): Promise<techTransferResponse>
+{
+  const response = await fetch(
+      `${API_BASE}machinemovement/get-transfering-machines?customerCode=${encodeURIComponent(customerCode)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+  );
+
+  if (!response.ok) {
+    throw new Error("Something went wrong.");
+  }
+
+  return await response.json();
+}
 
 export async function approveMachineReturnHod(request: hodApprovalData, status: string){
+  debugger;
   const response = await fetch(`${API_BASE}machinemovement/update-machine-return`, { 
     method: "POST", 
     headers:{ 
@@ -740,19 +758,48 @@ export async function suggestMachines(
     return res.json();
 }
 
-export const searchMachines = async (query: string) => { 
-  const companyID = getCompanyId(); 
-  const response = await fetch(
-    `${API_BASE}machinemovement/search-machine?query=${encodeURIComponent(query)}&companyId=${encodeURIComponent(companyID)}`
-  );
+export async function transferMachineTech(customerCode: string, techCode: string):Promise<techTransferResponse> {
+  const params = new URLSearchParams({customerCode, techCode});
 
-  const result = await response.json(); 
+  // Use the same base URL / path style as your other API functions
+    const res = await fetch(`${API_BASE}machinemovement/update-technicians?${params}`, {
+    method: "POST",
+  });
 
-  if (!response.ok) { 
-    throw new Error(result?.data || "Failed to search machines");
+  const json = await res.json().catch(() => null);
+
+  // Your controller returns { status, message } on errors
+  if (!res.ok) {
+    throw new Error(json?.message || "Technician transfer failed.");
   }
 
-  return result; 
+  return json.data as techTransferResponse;
+}
+
+export const searchTechnicians = async (query: string) => {
+  const companyID = getCompanyId();
+  const response = await fetch(`${API_BASE}machinemovement/search-by-tech?query=${encodeURIComponent(query)}&companyId=${encodeURIComponent(companyID)}`);
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.data || "Failed to search customers.");
+  }
+
+  return result;
+}
+
+export const searchMachines = async (query: string) => {
+  const companyID = getCompanyId();
+  const response = await fetch(`${API_BASE}machinemovement/search-customer?query=${encodeURIComponent(query)}&companyId=${encodeURIComponent(companyID)}`);
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.data || "Failed to search customers.");
+  }
+
+  return result;
 }
 
 // search invoice number suggestions function
@@ -1153,6 +1200,7 @@ export async function getCompanyName(companyId: string): Promise<string> {
 }
 
 export async function getMachineReturnLists(params: machineReturnReqDto): Promise<PaginatedResult<machineReturnResponseDto>> {
+  debugger;
   const searchParams = new URLSearchParams(); 
   
   if (params.query) {

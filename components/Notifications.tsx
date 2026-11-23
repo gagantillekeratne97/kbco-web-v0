@@ -189,7 +189,8 @@ export default function NotificationBell({
             }
 
             connection = new HubConnectionBuilder()
-                .withUrl(`https://kbco-reports.servvista.com/hubs/creditnotes`, {
+                //.withUrl(`https://kbco-reports.servvista.com/hubs/creditnotes`, {
+                .withUrl(`https://localhost:7136/hubs/creditnotes`, {
                     accessTokenFactory: () =>
                         localStorage.getItem("token") ||
                         sessionStorage.getItem("token") ||

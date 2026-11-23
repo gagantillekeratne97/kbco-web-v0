@@ -199,11 +199,11 @@ interface MachineReturnTableProps {
 const COLUMN_COUNT = 13;
 
 /** Roles that use the HOD approval modal. Everyone else gets the finance modal. */
-const HOD_ROLES = ["P2P", "Doculine"];
+const HOD_ROLES = ["P2P", "Doculine", "Administrator"];
 
 const STORES_ROLE = ["Logistics"];
 
-const FINANCE_ROLE = ["Accounts", "Administrator"];
+const FINANCE_ROLE = ["Accounts"];
 
 const cellBase = "px-4 py-3 text-sm text-slate-600 whitespace-nowrap";
 
@@ -343,19 +343,20 @@ export default function MachineReturnTable({
   ======================================================= */
 
   const submitHodDecision = async (
-    decision: "approve" | "reject",
+    decision: "APPROVED" | "REJECTED",
     formData: hodApprovalData
   ) => {
     if (!selectedReturn) return;
 
     try {
+      debugger;
       await approveMachineReturnHod(formData, decision);
 
       closeApprovalModal();
       onRefresh?.();
 
       alert(
-        `Machine return HOD ${decision === "approve" ? "approval" : "rejection"} completed successfully.`
+        `Machine return HOD ${decision === "APPROVED" ? "approval" : "rejection"} completed successfully.`
       );
     } catch (error) {
       console.error("HOD approval failed:", error);
@@ -435,7 +436,6 @@ export default function MachineReturnTable({
 
   const submitStoresReturn = async (formData: MachineReturnApprovalStoresRequest) => {
     if (!selectedReturn) return;
-    console.log(selectedReturn);
     try {
       // The submit function should goes in here. ok
       await updateMachineReturnCollection(formData);
@@ -897,8 +897,8 @@ export default function MachineReturnTable({
           details={details}
           returnNo={selectedReturn.returnId}
           onClose={closeApprovalModal}
-          onApprove={(formData) => submitHodDecision("approve", formData)}
-          onReject={(formData) => submitHodDecision("reject", formData)}
+          onApprove={(formData) => submitHodDecision("APPROVED", formData)}
+          onReject={(formData) => submitHodDecision("REJECTED", formData)}
         />
       )}
 
@@ -924,7 +924,7 @@ export default function MachineReturnTable({
           <MachineReturnStoresModal
               open
               onClose={closeApprovalModal}
-              machineReturnId={selectedReturn.returnId}
+              machineReturnID={selectedReturn.returnId}
               approverID={userName}
               details={details}
               onSubmit={submitStoresReturn}

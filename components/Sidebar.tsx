@@ -36,7 +36,9 @@ const navItems = [
   { label: "Machine Movements", icon: Truck, href: "/machinemovent", 
     children: [
       {label: "Machine Return", href: "/machine-movement/machine-return" }, 
-      {label: "Machine Disposal", href: "/machine-movement/machine-disposal" }
+      {label: "Machine Disposal", href: "/machine-movement/machine-disposal" },
+      {label: "Bulk Tech Transfer", href: "/machine-movement/tech-transfer" },
+      {label: "Single Tech Transfer", href: "/machine-movement/single-tech-transfer" },
     ]
   }, 
   { label: "Invoice Processing", icon: Receipt, href: "/transactions",     
